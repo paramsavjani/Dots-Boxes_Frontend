@@ -19,6 +19,8 @@ const geistMono = localFont({
   weight: "100 900",
 });
 
+
+
 function InteractiveBackground() {
   const groupRef = useRef<THREE.Group>(null);
   const isDragging = useRef(false);
@@ -26,6 +28,7 @@ function InteractiveBackground() {
   const targetRotationRef = useRef({ x: 0, y: 0 });
   const zoomRef = useRef(1);
   const targetZoomRef = useRef(1);
+  const lastTouchDistance = useRef(0);
 
   useEffect(() => {
     const handleMouseDown = (event: MouseEvent) => {
@@ -35,25 +38,19 @@ function InteractiveBackground() {
 
     const handleMouseMove = (event: MouseEvent) => {
       if (!isDragging.current) return;
-
       const deltaX = event.clientX - lastMousePos.current.x;
       const deltaY = event.clientY - lastMousePos.current.y;
-
       targetRotationRef.current.y += deltaX * 0.005;
       targetRotationRef.current.x += deltaY * 0.005;
-
       lastMousePos.current = { x: event.clientX, y: event.clientY };
     };
 
-    const handleMouseUp = () => {
-      isDragging.current = false;
-    };
+    const handleMouseUp = () => (isDragging.current = false);
 
     const handleWheel = (event: WheelEvent) => {
       event.preventDefault();
       const zoomSpeed = 0.1;
       const delta = event.deltaY > 0 ? 1 - zoomSpeed : 1 + zoomSpeed;
-
       targetZoomRef.current = Math.max(
         0.3,
         Math.min(3, targetZoomRef.current * delta)
@@ -65,24 +62,41 @@ function InteractiveBackground() {
         isDragging.current = true;
         const touch = event.touches[0];
         lastMousePos.current = { x: touch.clientX, y: touch.clientY };
+      } else if (event.touches.length === 2) {
+        // pinch start
+        const dx = event.touches[0].clientX - event.touches[1].clientX;
+        const dy = event.touches[0].clientY - event.touches[1].clientY;
+        lastTouchDistance.current = Math.sqrt(dx * dx + dy * dy);
       }
     };
 
     const handleTouchMove = (event: TouchEvent) => {
-      if (!isDragging.current || event.touches.length === 0) return;
+      if (event.touches.length === 1 && isDragging.current) {
+        // single finger rotation
+        const touch = event.touches[0];
+        const deltaX = touch.clientX - lastMousePos.current.x;
+        const deltaY = touch.clientY - lastMousePos.current.y;
+        targetRotationRef.current.y += deltaX * 0.005;
+        targetRotationRef.current.x += deltaY * 0.005;
+        lastMousePos.current = { x: touch.clientX, y: touch.clientY };
+      } else if (event.touches.length === 2) {
+        // pinch-to-zoom
+        const dx = event.touches[0].clientX - event.touches[1].clientX;
+        const dy = event.touches[0].clientY - event.touches[1].clientY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
 
-      const touch = event.touches[0];
-      const deltaX = touch.clientX - lastMousePos.current.x;
-      const deltaY = touch.clientY - lastMousePos.current.y;
-
-      targetRotationRef.current.y += deltaX * 0.005;
-      targetRotationRef.current.x += deltaY * 0.005;
-
-      lastMousePos.current = { x: touch.clientX, y: touch.clientY };
+        const zoomFactor = distance / lastTouchDistance.current;
+        targetZoomRef.current = Math.max(
+          0.3,
+          Math.min(3, targetZoomRef.current * zoomFactor)
+        );
+        lastTouchDistance.current = distance;
+      }
     };
 
-    const handleTouchEnd = () => {
-      isDragging.current = false;
+    const handleTouchEnd = (event: TouchEvent) => {
+      if (event.touches.length < 2) lastTouchDistance.current = 0;
+      if (event.touches.length === 0) isDragging.current = false;
     };
 
     window.addEventListener("mousedown", handleMouseDown);
@@ -106,13 +120,13 @@ function InteractiveBackground() {
 
   useFrame(() => {
     if (groupRef.current) {
-      // Smooth interpolation for rotation
+      // Smooth rotation
       groupRef.current.rotation.x +=
         (targetRotationRef.current.x - groupRef.current.rotation.x) * 0.05;
       groupRef.current.rotation.y +=
         (targetRotationRef.current.y - groupRef.current.rotation.y) * 0.05;
 
-      // Smooth interpolation for zoom
+      // Smooth zoom
       zoomRef.current += (targetZoomRef.current - zoomRef.current) * 0.1;
       groupRef.current.scale.setScalar(zoomRef.current);
     }
@@ -124,6 +138,114 @@ function InteractiveBackground() {
     </group>
   );
 }
+
+
+
+// function InteractiveBackground() {
+//   const groupRef = useRef<THREE.Group>(null);
+//   const isDragging = useRef(false);
+//   const lastMousePos = useRef({ x: 0, y: 0 });
+//   const targetRotationRef = useRef({ x: 0, y: 0 });
+//   const zoomRef = useRef(1);
+//   const targetZoomRef = useRef(1);
+
+//   useEffect(() => {
+//     const handleMouseDown = (event: MouseEvent) => {
+//       isDragging.current = true;
+//       lastMousePos.current = { x: event.clientX, y: event.clientY };
+//     };
+
+//     const handleMouseMove = (event: MouseEvent) => {
+//       if (!isDragging.current) return;
+
+//       const deltaX = event.clientX - lastMousePos.current.x;
+//       const deltaY = event.clientY - lastMousePos.current.y;
+
+//       targetRotationRef.current.y += deltaX * 0.005;
+//       targetRotationRef.current.x += deltaY * 0.005;
+
+//       lastMousePos.current = { x: event.clientX, y: event.clientY };
+//     };
+
+//     const handleMouseUp = () => {
+//       isDragging.current = false;
+//     };
+
+//     const handleWheel = (event: WheelEvent) => {
+//       event.preventDefault();
+//       const zoomSpeed = 0.1;
+//       const delta = event.deltaY > 0 ? 1 - zoomSpeed : 1 + zoomSpeed;
+
+//       targetZoomRef.current = Math.max(
+//         0.3,
+//         Math.min(3, targetZoomRef.current * delta)
+//       );
+//     };
+
+//     const handleTouchStart = (event: TouchEvent) => {
+//       if (event.touches.length === 1) {
+//         isDragging.current = true;
+//         const touch = event.touches[0];
+//         lastMousePos.current = { x: touch.clientX, y: touch.clientY };
+//       }
+//     };
+
+//     const handleTouchMove = (event: TouchEvent) => {
+//       if (!isDragging.current || event.touches.length === 0) return;
+
+//       const touch = event.touches[0];
+//       const deltaX = touch.clientX - lastMousePos.current.x;
+//       const deltaY = touch.clientY - lastMousePos.current.y;
+
+//       targetRotationRef.current.y += deltaX * 0.005;
+//       targetRotationRef.current.x += deltaY * 0.005;
+
+//       lastMousePos.current = { x: touch.clientX, y: touch.clientY };
+//     };
+
+//     const handleTouchEnd = () => {
+//       isDragging.current = false;
+//     };
+
+//     window.addEventListener("mousedown", handleMouseDown);
+//     window.addEventListener("mousemove", handleMouseMove);
+//     window.addEventListener("mouseup", handleMouseUp);
+//     window.addEventListener("wheel", handleWheel, { passive: false });
+//     window.addEventListener("touchstart", handleTouchStart);
+//     window.addEventListener("touchmove", handleTouchMove);
+//     window.addEventListener("touchend", handleTouchEnd);
+
+//     return () => {
+//       window.removeEventListener("mousedown", handleMouseDown);
+//       window.removeEventListener("mousemove", handleMouseMove);
+//       window.removeEventListener("mouseup", handleMouseUp);
+//       window.removeEventListener("wheel", handleWheel);
+//       window.removeEventListener("touchstart", handleTouchStart);
+//       window.removeEventListener("touchmove", handleTouchMove);
+//       window.removeEventListener("touchend", handleTouchEnd);
+//     };
+//   }, []);
+
+//   useFrame(() => {
+//     if (groupRef.current) {
+//       // Smooth interpolation for rotation
+//       groupRef.current.rotation.x +=
+//         (targetRotationRef.current.x - groupRef.current.rotation.x) * 0.05;
+//       groupRef.current.rotation.y +=
+//         (targetRotationRef.current.y - groupRef.current.rotation.y) * 0.05;
+
+//       // Smooth interpolation for zoom
+//       zoomRef.current += (targetZoomRef.current - zoomRef.current) * 0.1;
+//       groupRef.current.scale.setScalar(zoomRef.current);
+//     }
+//   });
+
+//   return (
+//     <group ref={groupRef}>
+//       <GlobalParticleSystem />
+//     </group>
+//   );
+// }
 
 
 // Global particle system for all pages

@@ -8,7 +8,6 @@ export default function Home() {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
 
   useEffect(() => {
     // Note: localStorage usage should be replaced with in-memory storage for Claude artifacts
@@ -85,8 +84,6 @@ export default function Home() {
                 placeholder="Enter your username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
                 className="w-full pl-12 pr-4 py-4 sm:py-5 bg-white/5 backdrop-blur-2xl text-white placeholder-gray-400 border border-white/10 focus:border-teal-400/40 focus:outline-none rounded-xl sm:rounded-2xl transition-all duration-500 text-base sm:text-lg font-medium shadow-inner relative z-10"
                 disabled={isLoading}
                 maxLength={20}
