@@ -18,36 +18,124 @@ const geistMono = localFont({
   weight: "100 900",
 });
 
-// Particle system inspired by the SLoP design
-function ParticleSystem() {
+// Mouse/Touch drag interaction handler
+function InteractiveBackground() {
+  const groupRef = useRef<THREE.Group>(null);
+  const isDragging = useRef(false);
+  const lastMousePos = useRef({ x: 0, y: 0 });
+  const targetRotationRef = useRef({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleMouseDown = (event: MouseEvent) => {
+      isDragging.current = true;
+      lastMousePos.current = { x: event.clientX, y: event.clientY };
+    };
+
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!isDragging.current) return;
+
+      const deltaX = event.clientX - lastMousePos.current.x;
+      const deltaY = event.clientY - lastMousePos.current.y;
+
+      targetRotationRef.current.y += deltaX * 0.005;
+      targetRotationRef.current.x += deltaY * 0.005;
+
+      lastMousePos.current = { x: event.clientX, y: event.clientY };
+    };
+
+    const handleMouseUp = () => {
+      isDragging.current = false;
+    };
+
+    const handleTouchStart = (event: TouchEvent) => {
+      if (event.touches.length > 0) {
+        isDragging.current = true;
+        const touch = event.touches[0];
+        lastMousePos.current = { x: touch.clientX, y: touch.clientY };
+      }
+    };
+
+    const handleTouchMove = (event: TouchEvent) => {
+      if (!isDragging.current || event.touches.length === 0) return;
+
+      const touch = event.touches[0];
+      const deltaX = touch.clientX - lastMousePos.current.x;
+      const deltaY = touch.clientY - lastMousePos.current.y;
+
+      targetRotationRef.current.y += deltaX * 0.005;
+      targetRotationRef.current.x += deltaY * 0.005;
+
+      lastMousePos.current = { x: touch.clientX, y: touch.clientY };
+    };
+
+    const handleTouchEnd = () => {
+      isDragging.current = false;
+    };
+
+    window.addEventListener("mousedown", handleMouseDown);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    window.addEventListener("touchstart", handleTouchStart);
+    window.addEventListener("touchmove", handleTouchMove);
+    window.addEventListener("touchend", handleTouchEnd);
+
+    return () => {
+      window.removeEventListener("mousedown", handleMouseDown);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, []);
+
+  useFrame(() => {
+    if (groupRef.current) {
+      // Smooth interpolation for rotation
+      groupRef.current.rotation.x +=
+        (targetRotationRef.current.x - groupRef.current.rotation.x) * 0.05;
+      groupRef.current.rotation.y +=
+        (targetRotationRef.current.y - groupRef.current.rotation.y) * 0.05;
+    }
+  });
+
+  return (
+    <group ref={groupRef}>
+      <GlobalParticleSystem />
+      {/* <FloatingClusters /> */}
+    </group>
+  );
+}
+
+// Global particle system for all pages
+function GlobalParticleSystem() {
   const particlesRef = useRef<THREE.Points>(null);
-  const materialRef = useRef<THREE.PointsMaterial>(null);
 
   useEffect(() => {
     if (!particlesRef.current) return;
 
-    const particleCount = 800;
+    const particleCount = 1000;
     const positions = new Float32Array(particleCount * 3);
     const colors = new Float32Array(particleCount * 3);
 
-    // Define color palette matching the SLoP theme
+    // SLoP color palette
     const colorPalette = [
-      new THREE.Color("#ff6b6b"), // Red/coral
+      new THREE.Color("#ff6b6b"), // Coral/Red
       new THREE.Color("#4ecdc4"), // Teal
       new THREE.Color("#45b7d1"), // Blue
       new THREE.Color("#96ceb4"), // Green
       new THREE.Color("#feca57"), // Yellow
       new THREE.Color("#ff9ff3"), // Pink
       new THREE.Color("#a8e6cf"), // Light green
+      new THREE.Color("#6c5ce7"), // Purple
     ];
 
     for (let i = 0; i < particleCount; i++) {
-      // Position particles in 3D space
-      positions[i * 3] = (Math.random() - 0.5) * 100;
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 100;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 60;
+      // Spread particles across a larger area
+      positions[i * 3] = (Math.random() - 0.5) * 120;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 120;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 80;
 
-      // Assign random colors from palette
       const color =
         colorPalette[Math.floor(Math.random() * colorPalette.length)];
       colors[i * 3] = color.r;
@@ -62,15 +150,15 @@ function ParticleSystem() {
 
   useFrame((state) => {
     if (particlesRef.current) {
-      particlesRef.current.rotation.y = state.clock.elapsedTime * 0.05;
+      particlesRef.current.rotation.y = state.clock.elapsedTime * 0.03;
       particlesRef.current.rotation.x =
-        Math.sin(state.clock.elapsedTime * 0.1) * 0.1;
+        Math.sin(state.clock.elapsedTime * 0.1) * 0.05;
 
       const positions = particlesRef.current.geometry.attributes.position
         .array as Float32Array;
       for (let i = 0; i < positions.length; i += 3) {
         positions[i + 1] +=
-          Math.sin(state.clock.elapsedTime + positions[i]) * 0.01;
+          Math.sin(state.clock.elapsedTime * 0.5 + positions[i]) * 0.008;
       }
       particlesRef.current.geometry.attributes.position.needsUpdate = true;
     }
@@ -80,8 +168,7 @@ function ParticleSystem() {
     <points ref={particlesRef}>
       <bufferGeometry />
       <pointsMaterial
-        ref={materialRef}
-        size={2}
+        size={2.5}
         vertexColors
         transparent
         opacity={0.8}
@@ -90,6 +177,9 @@ function ParticleSystem() {
     </points>
   );
 }
+
+// Floating sphere clusters
+
 
 export default function RootLayout({
   children,
@@ -120,37 +210,36 @@ export default function RootLayout({
         <div className="fixed inset-0 z-0">
           <Canvas
             className="w-full h-full"
-            camera={{ position: [0, 0, 40], fov: 60 }}
+            camera={{ position: [0, 0, 30], fov: 60 }}
             gl={{ antialias: true, alpha: true }}
           >
-            <fog attach="fog" args={["#000000", 20, 80]} />
+            <fog attach="fog" args={["#000000", 20, 100]} />
 
-            <ambientLight intensity={0.6} />
+            <ambientLight intensity={0.3} />
             <directionalLight
-              position={[10, 10, 5]}
-              intensity={0.6}
-              color="#ffffff"
-            />
-            <pointLight
-              position={[-10, -10, -10]}
+              position={[15, 15, 10]}
               intensity={0.4}
               color="#4ecdc4"
             />
             <pointLight
-              position={[10, -10, 10]}
-              intensity={0.4}
+              position={[-15, 15, 15]}
+              intensity={0.3}
               color="#ff6b6b"
             />
+            <pointLight
+              position={[15, -15, -15]}
+              intensity={0.3}
+              color="#feca57"
+            />
+            <pointLight position={[0, 0, 20]} intensity={0.2} color="#45b7d1" />
 
-            <ParticleSystem />
+            <InteractiveBackground />
 
             <OrbitControls
               enableZoom={false}
               enablePan={false}
-              autoRotate
-              autoRotateSpeed={0.1}
-              maxPolarAngle={Math.PI / 1.8}
-              minPolarAngle={Math.PI / 2.2}
+              autoRotate={false}
+              enabled={false}
             />
           </Canvas>
         </div>
