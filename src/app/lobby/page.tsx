@@ -15,16 +15,16 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    const socket = getSocket();
-
+    
     const savedName =
-      typeof window !== "undefined" ? localStorage.getItem("username") : null;
-
+    typeof window !== "undefined" ? localStorage.getItem("username") : null;
+    
     if (!savedName) {
       router.push("/");
       return;
     }
 
+    const socket = getSocket(savedName);
     socket.emit("join", savedName);
 
 
@@ -46,7 +46,7 @@ export default function Home() {
 
   async function fetchOnlineUsers() {
     const res = await fetch(
-      `https://slop-dsc.duckdns.org/api/user/onlineUsers`
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/onlineUsers`
     );
     const js = await res.json();
     console.log(js);
