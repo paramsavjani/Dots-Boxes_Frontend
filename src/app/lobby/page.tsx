@@ -12,53 +12,32 @@ interface OnlineUser {
 
 export default function Home() {
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
+  const [username, setUsername] = useState<string>("");
   const router = useRouter();
 
-  async function checkAnyOtherUserIsThere() {
-    const savedName =
-      typeof window !== "undefined" ? localStorage.getItem("username") : null;
+  useEffect(() => {
+    const sessionId =
+      typeof window !== "undefined"
+        ? sessionStorage.getItem("sessionId")
+        : null;
 
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/checkUsername`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: savedName }),
-      }
-    );
-
-    if (!savedName || !res.ok) {
+    if (sessionId === null) {
       router.push("/");
       return;
     }
-  }
 
-  useEffect(() => {
+    const savedUsername = localStorage.getItem("username");
+    setUsername(() => localStorage.getItem("username") || "");
 
-    const savedName =
-    typeof window !== "undefined" ? localStorage.getItem("username") : null;
+    const socket = getSocket(sessionId);
+    socket.emit("join", savedUsername);
 
-    checkAnyOtherUserIsThere();
-
-    if (savedName === null) return;
-
-    const socket = getSocket(savedName);
-    socket.emit("join", savedName);
-
-
-    socket.on("userJoined", (user) => {
-      console.log(`${user.username} joined!`);
-      setOnlineUsers((prev) => [...prev, user]);
-    });
-
-    socket.on("userLeft", (user) => {
-      console.log(`${user.username} left!`);
-      setOnlineUsers((prev) => prev.filter((u) => u.id !== user.id));
+    socket.on("onlineUsers", (users) => {
+      setOnlineUsers(users);
     });
 
     return () => {
-      socket.off("userJoined");
-      socket.off("userLeft");
+      socket.off("onlineUsers");
     };
   }, [router]);
 
@@ -75,14 +54,20 @@ export default function Home() {
     fetchOnlineUsers();
   }, []);
 
+  useEffect(() => {
+    console.log(onlineUsers);
+  }, [onlineUsers]);
+
   return (
     <div className="p-6">
       <div>
         <h2>Online Users:</h2>
         <ul>
-          {onlineUsers.map((user) => (
-            <li key={user.id}>{user.username}</li>
-          ))}
+          {onlineUsers
+            .filter((user) => username !== user.username)
+            .map((user) => (
+              <li key={user.username}>{user.username}</li>
+            ))}
         </ul>
       </div>
     </div>

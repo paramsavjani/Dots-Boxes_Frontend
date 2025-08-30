@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { User, ArrowRight, Check, X, Loader2 } from "lucide-react";
 import { getSocket } from "@/lib/socket";
+import { v4 as uuidv4 } from "uuid"; // install uuid
 
 export default function Home() {
   const router = useRouter();
@@ -53,11 +54,14 @@ export default function Home() {
     setIsLoading(true);
 
     try {
-      if (typeof window !== "undefined") {
-        localStorage.setItem("username", username.trim());
+      let sessionId = sessionStorage.getItem("sessionId");
+      if (!sessionId) {
+        sessionId = uuidv4();
+        sessionStorage.setItem("sessionId", sessionId);
       }
-      const socket = getSocket(username.trim());
-      socket.emit("join", username.trim());
+      localStorage.setItem("username", username.trim());
+      const socket = getSocket(sessionId);
+      socket.emit("join", username);
       router.push("/lobby");
     } catch (err) {
       console.error("Registration failed", err);
@@ -66,32 +70,32 @@ export default function Home() {
     }
   };
 
-  async function checkLocalStorage() {
-    const savedUsername = localStorage.getItem("username");
-    if (savedUsername) {
-      try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/checkUsername`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username: username.trim() }),
-          }
-        );
-        if (res.ok) {
-          const socket = getSocket(savedUsername);
-          socket.emit("join", savedUsername);
-          router.push("/lobby");
-        }
-      } catch (error) {
-        console.error("Check username failed", error);
-      }
-    }
-  }
+  // async function checkLocalStorage() {
+  //   const savedUsername = sessionStorage.getItem("username");
+  //   if (savedUsername) {
+  //     try {
+  //       const res = await fetch(
+  //         `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/checkUsername`,
+  //         {
+  //           method: "POST",
+  //           headers: { "Content-Type": "application/json" },
+  //           body: JSON.stringify({ username: username.trim() }),
+  //         }
+  //       );
+  //       if (res.ok) {
+  //         const socket = getSocket(savedUsername);
+  //         socket.emit("join", savedUsername);
+  //         router.push("/lobby");
+  //       }
+  //     } catch (error) {
+  //       console.error("Check username failed", error);
+  //     }
+  //   }
+  // }
 
-  useEffect(() => {
-    checkLocalStorage();
-  }, []);
+  // useEffect(() => {
+  //   checkLocalStorage();
+  // }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
