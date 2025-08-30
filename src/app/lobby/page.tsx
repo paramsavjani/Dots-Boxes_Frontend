@@ -45,7 +45,9 @@ export default function Home() {
   }, [router]);
 
   async function fetchOnlineUsers() {
-    const res = await fetch(`${process.env.BACKEND_URL}/api/user/onlineUsers`);
+    const res = await fetch(
+      `https://slop-dsc.duckdns.org/api/user/onlineUsers`
+    );
     const js = await res.json();
     console.log(js);
     setOnlineUsers(js);
