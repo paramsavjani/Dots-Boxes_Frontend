@@ -115,7 +115,7 @@ export default function Home() {
         </div>
 
         {/* Login Form */}
-        <div className="bg-black/20 backdrop-blur-sm rounded-2xl p-6 sm:p-8 border border-white/10 shadow-2xl relative">
+        <form onSubmit={handleSubmit} className="bg-black/20 backdrop-blur-sm rounded-2xl p-6 sm:p-8 border border-white/10 shadow-2xl relative">
           <div className="space-y-6 relative z-10">
             {/* Username Input */}
             <div className="relative group">
@@ -193,8 +193,7 @@ export default function Home() {
 
             {/* Submit Button */}
             <button
-              type="button"
-              onClick={handleSubmit}
+              type="submit"
               disabled={!username.trim() || isLoading || !isAvailable}
               className="w-full bg-white/10 hover:bg-white/20 text-white py-4 rounded-xl font-semibold flex items-center justify-center gap-3 disabled:opacity-50 transition-all"
             >
@@ -211,7 +210,7 @@ export default function Home() {
               )}
             </button>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );
