@@ -11,5 +11,6 @@ export function getSocket(sessionId: string) {
       query: { sessionId },
     });
   }
+  socket.connect();
   return socket;
 }

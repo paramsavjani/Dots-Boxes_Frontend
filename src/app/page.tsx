@@ -59,9 +59,12 @@ export default function Home() {
         sessionId = uuidv4();
         sessionStorage.setItem("sessionId", sessionId);
       }
-      localStorage.setItem("username", username.trim());
       const socket = getSocket(sessionId);
-      socket.emit("join", username);
+
+      console.log("Socket connected:", username);
+      localStorage.setItem("username", username.trim());
+      socket.emit("join", username.trim());
+      console.log("join from handle submit");
       router.push("/lobby");
     } catch (err) {
       console.error("Registration failed", err);
@@ -70,32 +73,38 @@ export default function Home() {
     }
   };
 
-  // async function checkLocalStorage() {
-  //   const savedUsername = sessionStorage.getItem("username");
-  //   if (savedUsername) {
-  //     try {
-  //       const res = await fetch(
-  //         `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/checkUsername`,
-  //         {
-  //           method: "POST",
-  //           headers: { "Content-Type": "application/json" },
-  //           body: JSON.stringify({ username: username.trim() }),
-  //         }
-  //       );
-  //       if (res.ok) {
-  //         const socket = getSocket(savedUsername);
-  //         socket.emit("join", savedUsername);
-  //         router.push("/lobby");
-  //       }
-  //     } catch (error) {
-  //       console.error("Check username failed", error);
-  //     }
-  //   }
-  // }
+  async function checkLocalStorage() {
+    const sessionId = sessionStorage.getItem("sessionId");
+    const username = localStorage.getItem("username");
+    if (!sessionId && username) {
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/checkUsername`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: username }),
+          }
+        );
+        console.log(username);
+        if (res.ok) {
+          const sessionId = uuidv4();
+          const socket = getSocket(sessionId);
+          socket.connect();
+          socket.emit("join", username);
+          console.log("join from check local storage");
+          sessionStorage.setItem("sessionId", sessionId);
+          router.push("/lobby");
+        }
+      } catch (error) {
+        console.error("Check username failed", error);
+      }
+    }
+  }
 
-  // useEffect(() => {
-  //   checkLocalStorage();
-  // }, []);
+  useEffect(() => {
+    checkLocalStorage();
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
