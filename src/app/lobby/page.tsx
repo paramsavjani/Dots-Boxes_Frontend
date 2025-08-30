@@ -140,7 +140,7 @@ export default function Lobby() {
       {/* Profile Bar - Fixed Bottom */}
       <div className="fixed bottom-0 left-0 right-0 p-4 sm:p-6">
         <div className="max-w-sm sm:max-w-md lg:max-w-lg xl:max-w-xl mx-auto">
-          <div className="bg-black/35 backdrop-blur-xl rounded-2xl p-4 shadow-2xl">
+          <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-4 shadow-2xl">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-teal-400/25 to-blue-500/25 rounded-xl flex items-center justify-center">
