@@ -3,12 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Gamepad2,
   User,
   ArrowRight,
-  Sparkles,
-  Trophy,
-  Users,
 } from "lucide-react";
 
 export default function Home() {
@@ -43,10 +39,6 @@ export default function Home() {
           <h1 className="text-5xl font-bold text-white mb-4 leading-tight">
             Loops & Squares
           </h1>
-          <div className="flex items-center justify-center gap-2 text-gray-400 text-sm">
-            <Sparkles className="w-4 h-4 text-teal-400" />
-            <span>Enter your name to begin</span>
-          </div>
         </div>
 
         {/* Login Form */}
