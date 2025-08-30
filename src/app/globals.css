@@ -12,6 +12,7 @@
   box-sizing: border-box;
   padding: 0;
   margin: 0;
+
 }
 
 html,
@@ -26,6 +27,7 @@ body {
   font-family: var(--font-geist-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: black;
 }
 
 /* Custom scrollbar */
