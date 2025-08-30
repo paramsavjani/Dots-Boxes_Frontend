@@ -4,7 +4,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { getSocket } from "@/lib/socket";
 import { useRouter } from "next/navigation";
-import { User, LogOut, Users } from "lucide-react";
+import { User, LogOut, Users, RefreshCw } from "lucide-react";
 
 interface OnlineUser {
   socketId: string;
@@ -16,6 +16,7 @@ export default function Lobby() {
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
   const [username, setUsername] = useState("");
   const [sessionId, setSessionId] = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -44,6 +45,7 @@ export default function Lobby() {
 
   const fetchOnlineUsers = useCallback(async () => {
     try {
+      setIsRefreshing(true);
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/onlineUsers`
       );
@@ -53,6 +55,8 @@ export default function Lobby() {
       }
     } catch (err) {
       console.error("Failed to fetch online users:", err);
+    } finally {
+      setIsRefreshing(false);
     }
   }, []);
 
@@ -74,21 +78,36 @@ export default function Lobby() {
       {/* Center Content */}
       <div className="flex-grow flex items-center justify-center p-4 sm:p-6">
         <div className="w-full max-w-md">
-          <div className="bg-black/40 backdrop-blur-xl rounded-3xl p-6 shadow-2xl">
+          <div className="bg-black/40 backdrop-blur-sm rounded-3xl p-6 shadow-2xl">
             {/* Header */}
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-gradient-to-br from-green-400/25 to-emerald-500/25 rounded-xl flex items-center justify-center">
-                <Users className="w-5 h-5 text-green-400" />
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-green-400/25 to-emerald-500/25 rounded-xl flex items-center justify-center">
+                  <Users className="w-5 h-5 text-green-400" />
+                </div>
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-white">
+                    Online Players
+                  </h2>
+                  <p className="text-gray-400 text-sm">
+                    {otherUsers.length}{" "}
+                    {otherUsers.length === 1 ? "player" : "players"} online
+                  </p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-xl sm:text-2xl font-bold text-white">
-                  Online Players
-                </h2>
-                <p className="text-gray-400 text-sm">
-                  {otherUsers.length}{" "}
-                  {otherUsers.length === 1 ? "player" : "players"} online
-                </p>
-              </div>
+
+              {/* Refresh Button */}
+              <button
+                onClick={fetchOnlineUsers}
+                disabled={isRefreshing}
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all"
+              >
+                <RefreshCw
+                  className={`w-5 h-5 text-white ${
+                    isRefreshing ? "animate-spin" : ""
+                  }`}
+                />
+              </button>
             </div>
 
             {/* Users List */}
