@@ -18,7 +18,6 @@ const geistMono = localFont({
   weight: "100 900",
 });
 
-
 // Particle system inspired by the SLoP design
 function ParticleSystem() {
   const particlesRef = useRef<THREE.Points>(null);
@@ -92,76 +91,6 @@ function ParticleSystem() {
   );
 }
 
-// Floating clusters similar to SLoP design
-function FloatingClusters() {
-  const groupRef = useRef<THREE.Group>(null);
-
-  useFrame((state) => {
-    if (groupRef.current) {
-      groupRef.current.rotation.y = state.clock.elapsedTime * 0.02;
-    }
-  });
-
-  const clusters: {
-    position: [number, number, number];
-    color: string;
-    count: number;
-  }[] = [
-    { position: [-15, 8, -10], color: "#ff6b6b", count: 12 },
-    { position: [15, -5, -8], color: "#4ecdc4", count: 15 },
-    { position: [-8, -10, 5], color: "#45b7d1", count: 10 },
-    { position: [12, 10, -5], color: "#feca57", count: 8 },
-  ];
-
-  return (
-    <group ref={groupRef}>
-      {clusters.map((cluster, clusterIndex) => (
-        <group key={clusterIndex} position={cluster.position}>
-          {Array.from({ length: cluster.count }).map((_, i) => (
-            <Sphere
-              key={i}
-              position={[
-                (Math.random() - 0.5) * 8,
-                (Math.random() - 0.5) * 8,
-                (Math.random() - 0.5) * 8,
-              ]}
-              color={cluster.color}
-              index={i}
-            />
-          ))}
-        </group>
-      ))}
-    </group>
-  );
-}
-
-function Sphere({
-  position,
-  color,
-  index,
-}: {
-  position: [number, number, number];
-  color: string;
-  index: number;
-}) {
-  const ref = useRef<THREE.Mesh>(null);
-
-  useFrame((state) => {
-    if (ref.current) {
-      ref.current.position.y +=
-        Math.sin(state.clock.elapsedTime * 2 + index) * 0.005;
-      ref.current.rotation.x += 0.01;
-      ref.current.rotation.y += 0.015;
-    }
-  });
-
-  return (
-    <mesh ref={ref} position={position}>
-      <sphereGeometry args={[0.3, 16, 16]} />
-      <meshPhongMaterial color={color} transparent opacity={0.7} />
-    </mesh>
-  );
-}
 
 export default function RootLayout({
   children,
@@ -215,7 +144,6 @@ export default function RootLayout({
             />
 
             <ParticleSystem />
-            <FloatingClusters />
 
             <OrbitControls
               enableZoom={false}
