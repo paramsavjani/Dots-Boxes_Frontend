@@ -38,10 +38,19 @@ export default function Lobby() {
       setOnlineUsers(users);
     });
 
+    socket.on("receiveFriendRequest", (username: string) => {
+      console.log(`Friend request received from ${username}`);
+    });
+
     return () => {
       socket.off("onlineUsers");
     };
   }, [router]);
+
+  const sendRequest = (socketId: string) => {
+    const socket = getSocket(sessionId);
+    socket.emit("sendFriendRequest", socketId);
+  };
 
   const fetchOnlineUsers = useCallback(async () => {
     try {
@@ -139,7 +148,10 @@ export default function Lobby() {
                       </p>
                     </div>
 
-                    <button className="bg-gradient-to-r from-teal-400/20 to-blue-400/20 hover:from-teal-400/30 hover:to-blue-400/30 text-teal-300 px-4 py-2.5 rounded-xl transition-all text-sm font-semibold border border-teal-400/20 hover:border-teal-400/40 shadow-lg">
+                    <button
+                      onClick={() => sendRequest(user.socketId)}
+                      className="bg-gradient-to-r from-teal-400/20 to-blue-400/20 hover:from-teal-400/30 hover:to-blue-400/30 text-teal-300 px-4 py-2.5 rounded-xl transition-all text-sm font-semibold border border-teal-400/20 hover:border-teal-400/40 shadow-lg"
+                    >
                       Challenge
                     </button>
                   </div>
