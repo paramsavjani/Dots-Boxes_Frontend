@@ -285,10 +285,10 @@ export default function RootLayout({
         <div className="fixed inset-0 z-0">
           <Canvas
             className="w-full h-full"
-            camera={{ position: [0, 0, 30], fov: 60 }}
+            camera={{ position: [100, 0, 10], fov: 60 }}
             gl={{ antialias: true, alpha: true }}
           >
-            <fog attach="fog" args={["#000000", 30, 120]} />
+            <fog attach="fog" args={["#000000", 30, 1200]} />
 
             {/* Enhanced lighting system for bright metallic balls */}
             <ambientLight intensity={0.6} color="#ffffff" />
