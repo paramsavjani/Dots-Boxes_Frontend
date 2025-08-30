@@ -4,7 +4,7 @@ let socket: Socket | null = null;
 
 export function getSocket() {
   if (!socket) {
-    socket = io("http://localhost:9000", {
+    socket = io(process.env.BACKEND_URL, {
       withCredentials: true,
     });
   }

@@ -30,7 +30,6 @@ export default function Home() {
       localStorage.setItem("username", username.trim());
     }
 
-    // ✅ Emit to socket before navigating
     const socket = getSocket();
     socket.emit("join", username.trim());
 
