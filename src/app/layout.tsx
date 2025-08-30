@@ -1,5 +1,6 @@
 "use client";
 
+
 import localFont from "next/font/local";
 import "./globals.css";
 import { Canvas, useFrame } from "@react-three/fiber";
@@ -18,12 +19,13 @@ const geistMono = localFont({
   weight: "100 900",
 });
 
-// Mouse/Touch drag interaction handler
 function InteractiveBackground() {
   const groupRef = useRef<THREE.Group>(null);
   const isDragging = useRef(false);
   const lastMousePos = useRef({ x: 0, y: 0 });
   const targetRotationRef = useRef({ x: 0, y: 0 });
+  const zoomRef = useRef(1);
+  const targetZoomRef = useRef(1);
 
   useEffect(() => {
     const handleMouseDown = (event: MouseEvent) => {
@@ -47,8 +49,19 @@ function InteractiveBackground() {
       isDragging.current = false;
     };
 
+    const handleWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      const zoomSpeed = 0.1;
+      const delta = event.deltaY > 0 ? 1 - zoomSpeed : 1 + zoomSpeed;
+
+      targetZoomRef.current = Math.max(
+        0.3,
+        Math.min(3, targetZoomRef.current * delta)
+      );
+    };
+
     const handleTouchStart = (event: TouchEvent) => {
-      if (event.touches.length > 0) {
+      if (event.touches.length === 1) {
         isDragging.current = true;
         const touch = event.touches[0];
         lastMousePos.current = { x: touch.clientX, y: touch.clientY };
@@ -75,6 +88,7 @@ function InteractiveBackground() {
     window.addEventListener("mousedown", handleMouseDown);
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
+    window.addEventListener("wheel", handleWheel, { passive: false });
     window.addEventListener("touchstart", handleTouchStart);
     window.addEventListener("touchmove", handleTouchMove);
     window.addEventListener("touchend", handleTouchEnd);
@@ -83,6 +97,7 @@ function InteractiveBackground() {
       window.removeEventListener("mousedown", handleMouseDown);
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("wheel", handleWheel);
       window.removeEventListener("touchstart", handleTouchStart);
       window.removeEventListener("touchmove", handleTouchMove);
       window.removeEventListener("touchend", handleTouchEnd);
@@ -96,16 +111,20 @@ function InteractiveBackground() {
         (targetRotationRef.current.x - groupRef.current.rotation.x) * 0.05;
       groupRef.current.rotation.y +=
         (targetRotationRef.current.y - groupRef.current.rotation.y) * 0.05;
+
+      // Smooth interpolation for zoom
+      zoomRef.current += (targetZoomRef.current - zoomRef.current) * 0.1;
+      groupRef.current.scale.setScalar(zoomRef.current);
     }
   });
 
   return (
     <group ref={groupRef}>
       <GlobalParticleSystem />
-      {/* <FloatingClusters /> */}
     </group>
   );
 }
+
 
 // Global particle system for all pages
 function GlobalParticleSystem() {
