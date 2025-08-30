@@ -14,15 +14,33 @@ export default function Home() {
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
   const router = useRouter();
 
-  useEffect(() => {
-    
+  async function checkAnyOtherUserIsThere() {
     const savedName =
-    typeof window !== "undefined" ? localStorage.getItem("username") : null;
-    
-    if (!savedName) {
+      typeof window !== "undefined" ? localStorage.getItem("username") : null;
+
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/checkUsername`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: savedName }),
+      }
+    );
+
+    if (!savedName || !res.ok) {
       router.push("/");
       return;
     }
+  }
+
+  useEffect(() => {
+
+    const savedName =
+    typeof window !== "undefined" ? localStorage.getItem("username") : null;
+
+    checkAnyOtherUserIsThere();
+
+    if (savedName === null) return;
 
     const socket = getSocket(savedName);
     socket.emit("join", savedName);
