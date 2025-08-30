@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { User, ArrowRight } from "lucide-react";
+import { getSocket } from "@/lib/socket";
 
 export default function Home() {
   const router = useRouter();
@@ -10,26 +11,30 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // Note: localStorage usage should be replaced with in-memory storage for Claude artifacts
     const savedName =
       typeof window !== "undefined" ? localStorage.getItem("username") : null;
+
     if (savedName) {
       router.push("/lobby");
+      return;
     }
-  }, [router]);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (username.trim() === "") return;
 
     setIsLoading(true);
+
     if (typeof window !== "undefined") {
       localStorage.setItem("username", username.trim());
     }
 
-    setTimeout(() => {
-      router.push("/lobby");
-    }, 800);
+    // ✅ Emit to socket before navigating
+    const socket = getSocket();
+    socket.emit("join", username.trim());
+
+    router.push("/lobby");
   };
 
   return (
