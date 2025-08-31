@@ -206,9 +206,9 @@ export default function Lobby() {
                               )
                             )
                           }
-                          className="group/accept px-4 py-2.5 bg-gradient-to-r from-emerald-500/70 to-green-500/70 hover:from-emerald-500/90 hover:to-green-500/90 rounded-xl text-white text-sm font-bold transition-all duration-300 shadow-lg hover:shadow-emerald-400/30 hover:shadow-xl border border-emerald-400/50 hover:border-emerald-400/70 active:scale-95 hover:scale-105"
+                          className="flex items-center gap-2 px-4 py-2 bg-green-300/30 rounded-xl border border-green-400/30 hover:bg-green-500/30 transition-colors duration-300"
                         >
-                          <span className="flex items-center gap-2">
+                          <span className="text-green-300 text-sm font-bold">
                             Accept
                           </span>
                         </button>
