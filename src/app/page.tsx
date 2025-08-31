@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { User, ArrowRight, Check, X, Loader2 } from "lucide-react";
 import { getSocket } from "@/lib/socket";
-import { v4 as uuidv4 } from "uuid"; // install uuid
+import { v4 as uuidv4 } from "uuid";
 
 export default function Home() {
   const router = useRouter();
@@ -15,7 +15,6 @@ export default function Home() {
   const [isChecking, setIsChecking] = useState(false);
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
 
-  // Check username availability with debounce
   useEffect(() => {
     if (!username.trim()) {
       setIsAvailable(null);

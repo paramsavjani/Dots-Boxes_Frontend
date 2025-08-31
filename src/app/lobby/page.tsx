@@ -46,9 +46,8 @@ export default function Lobby() {
       setRequests((prev) => [...prev, req]);
     });
 
-    socket.on("friendRequestAccepted", () => {
-      console.log("Friend request accepted, navigating to game...");
-      router.push("/game");
+    socket.on("gameStart", () => {
+      router.push(`/game`);
     });
 
     return () => {
@@ -129,7 +128,6 @@ export default function Lobby() {
   function acceptRequest(toSessionId: string): void {
     const socket = getSocket(sessionId);
     socket.emit("friendRequestAccepted", toSessionId);
-    router.push("/game");
   }
 
   const otherUsers = onlineUsers.filter((u) => u.username !== username);
