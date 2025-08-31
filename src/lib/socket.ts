@@ -4,13 +4,16 @@ let socket: Socket | null = null;
 
 export function getSocket(sessionId: string) {
   if (!socket) {
-
-
     socket = io(process.env.NEXT_PUBLIC_BACKEND_URL as string, {
       withCredentials: true,
-      query: { sessionId },
+      autoConnect: false,
     });
   }
-  socket.connect();
+
+  socket.auth = { sessionId };
+  if (!socket.connected) {
+    socket.connect();
+  }
+
   return socket;
 }

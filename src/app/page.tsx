@@ -54,17 +54,11 @@ export default function Home() {
     setIsLoading(true);
 
     try {
-      let sessionId = sessionStorage.getItem("sessionId");
-      if (!sessionId) {
-        sessionId = uuidv4();
-        sessionStorage.setItem("sessionId", sessionId);
-      }
+      const sessionId = uuidv4();
+      sessionStorage.setItem("sessionId", sessionId);
       const socket = getSocket(sessionId);
-
-      console.log("Socket connected:", username);
       localStorage.setItem("username", username.trim());
       socket.emit("join", username.trim());
-      console.log("join from handle submit");
       router.push("/lobby");
     } catch (err) {
       console.error("Registration failed", err);
@@ -125,7 +119,10 @@ export default function Home() {
         </div>
 
         {/* Login Form */}
-        <form onSubmit={handleSubmit} className="bg-black/20 backdrop-blur-sm rounded-2xl p-6 sm:p-8 border border-white/10 shadow-2xl relative">
+        <form
+          onSubmit={handleSubmit}
+          className="bg-black/20 backdrop-blur-sm rounded-2xl p-6 sm:p-8 border border-white/10 shadow-2xl relative"
+        >
           <div className="space-y-6 relative z-10">
             {/* Username Input */}
             <div className="relative group">
