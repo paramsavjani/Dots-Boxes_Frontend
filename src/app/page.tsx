@@ -92,7 +92,6 @@ export default function Home() {
           const socket = getSocket(sessionId);
           socket.connect();
           socket.emit("join", username);
-          console.log("join from check local storage");
           sessionStorage.setItem("sessionId", sessionId);
           router.push("/lobby");
         }
@@ -102,8 +101,19 @@ export default function Home() {
     }
   }
 
+  async function checkSession() {
+    const sessionId = sessionStorage.getItem("sessionId");
+    if (sessionId) {
+      const socket = getSocket(sessionId);
+      socket.connect();
+      socket.emit("join", localStorage.getItem("username"));
+      router.push("/lobby");
+    }
+  }
+
   useEffect(() => {
     checkLocalStorage();
+    checkSession();
   }, []);
 
   return (

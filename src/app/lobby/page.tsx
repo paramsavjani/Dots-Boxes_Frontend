@@ -46,9 +46,15 @@ export default function Lobby() {
       setRequests((prev) => [...prev, req]);
     });
 
+    socket.on("friendRequestAccepted", () => {
+      console.log("Friend request accepted, navigating to game...");
+      router.push("/game");
+    });
+
     return () => {
       socket.off("onlineUsers");
       socket.off("receiveFriendRequest");
+      socket.off("friendRequestAccepted");
     };
   }, [router]);
 
@@ -120,10 +126,10 @@ export default function Lobby() {
     router.push("/");
   };
 
-
   function acceptRequest(toSessionId: string): void {
     const socket = getSocket(sessionId);
-    socket.emit("acceptFriendRequest", toSessionId);
+    socket.emit("friendRequestAccepted", toSessionId);
+    router.push("/game");
   }
 
   const otherUsers = onlineUsers.filter((u) => u.username !== username);
@@ -187,8 +193,6 @@ export default function Lobby() {
                     (r) => r.from === user.sessionId && r.to === "me"
                   );
 
-                  
-
                   return (
                     <div
                       key={user.socketId}
@@ -211,9 +215,7 @@ export default function Lobby() {
                         </div>
                       ) : hasReceived ? (
                         <button
-                          onClick={() =>
-                            acceptRequest(user.sessionId)
-                          }
+                          onClick={() => acceptRequest(user.sessionId)}
                           className="flex items-center gap-2 px-3 py-2 bg-green-800/40 rounded-xl border border-green-400/30 hover:bg-green-500/30 transition-colors duration-300"
                         >
                           <span className="text-green-300 text-sm font-bold">
