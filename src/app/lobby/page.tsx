@@ -4,7 +4,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { getSocket } from "@/lib/socket";
 import { useRouter } from "next/navigation";
-import { User, LogOut, Users, RefreshCw, Inbox, Send } from "lucide-react";
+import { User, LogOut, Users, RefreshCw } from "lucide-react";
 
 interface OnlineUser {
   socketId: string;
@@ -115,18 +115,9 @@ export default function Lobby() {
     router.push("/");
   };
 
-  const sentRequests = requests.filter((r) => r.from === "me");
-  const receivedRequests = requests.filter((r) => r.to === "me");
 
-  const otherUsers = onlineUsers.filter(
-    (u) =>
-      u.username !== username &&
-      !requests.some(
-        (r) =>
-          (r.from === "me" && r.to === u.sessionId) ||
-          (r.from === u.sessionId && r.to === "me")
-      )
-  );
+  const otherUsers = onlineUsers.filter((u) => u.username !== username);
+
 
   return (
     <div className="min-h-screen flex flex-col relative">
@@ -164,69 +155,6 @@ export default function Lobby() {
                 />
               </button>
             </div>
-
-            {/* Friend Requests */}
-            <div className="mb-6 space-y-4">
-              {/* Sent */}
-              <div className="p-3 bg-blue-900/30 rounded-xl">
-                <div className="flex items-center gap-2 mb-2">
-                  <Send className="w-4 h-4 text-blue-300" />
-                  <p className="text-sm text-white font-semibold">
-                    Sent Requests
-                  </p>
-                </div>
-                {sentRequests.length === 0 ? (
-                  <p className="text-gray-400 text-xs">No requests sent</p>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    {sentRequests.map((r, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between bg-blue-800/20 p-2 rounded-lg text-white text-sm"
-                      >
-                        <span>To: {r.to}</span>
-                        <span className="text-blue-300 text-xs">Pending</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Received */}
-              <div className="p-3 bg-green-900/30 rounded-xl">
-                <div className="flex items-center gap-2 mb-2">
-                  <Inbox className="w-4 h-4 text-green-300" />
-                  <p className="text-sm text-white font-semibold">
-                    Received Requests
-                  </p>
-                </div>
-                {receivedRequests.length === 0 ? (
-                  <p className="text-gray-400 text-xs">No requests received</p>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    {receivedRequests.map((r, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between bg-green-800/20 p-2 rounded-lg text-white text-sm"
-                      >
-                        <span>From: {r.from}</span>
-                        <button
-                          onClick={() =>
-                            setRequests((prev) =>
-                              prev.filter((_, idx) => idx !== i)
-                            )
-                          }
-                          className="px-2 py-1 bg-green-500/70 rounded hover:bg-green-500/90 text-white text-xs"
-                        >
-                          Accept
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
             {/* Users List */}
             <div className="space-y-3 max-h-[35vh] overflow-y-auto custom-scrollbar">
               {otherUsers.length === 0 ? (
@@ -242,28 +170,57 @@ export default function Lobby() {
                   </p>
                 </div>
               ) : (
-                otherUsers.map((user) => (
-                  <div
-                    key={user.socketId}
-                    className="flex items-center justify-between p-4 bg-black/25 hover:bg-black/35 rounded-2xl transition-all"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-11 h-11 bg-gradient-to-br from-teal-400/25 to-blue-500/25 rounded-xl flex items-center justify-center">
-                        <User className="w-5 h-5 text-teal-300" />
-                      </div>
-                      <p className="text-white font-semibold text-base">
-                        {user.username}
-                      </p>
-                    </div>
+                otherUsers.map((user) => {
+                  const hasSent = requests.some(
+                    (r) => r.from === "me" && r.to === user.sessionId
+                  );
+                  const hasReceived = requests.some(
+                    (r) => r.from === user.sessionId && r.to === "me"
+                  );
 
-                    <button
-                      onClick={() => sendRequest(user.sessionId)}
-                      className="bg-gradient-to-r from-teal-400/20 to-blue-400/20 hover:from-teal-400/30 hover:to-blue-400/30 text-teal-300 px-4 py-2.5 rounded-xl transition-all text-sm font-semibold border border-teal-400/20 hover:border-teal-400/40 shadow-lg"
+                  return (
+                    <div
+                      key={user.socketId}
+                      className="flex items-center justify-between p-4 bg-black/25 hover:bg-black/35 rounded-2xl transition-all"
                     >
-                      Challenge
-                    </button>
-                  </div>
-                ))
+                      <div className="flex items-center gap-4">
+                        <div className="w-11 h-11 bg-gradient-to-br from-teal-400/25 to-blue-500/25 rounded-xl flex items-center justify-center">
+                          <User className="w-5 h-5 text-teal-300" />
+                        </div>
+                        <p className="text-white font-semibold text-base">
+                          {user.username}
+                        </p>
+                      </div>
+
+                      {hasSent ? (
+                        <span className="text-blue-400 text-sm font-semibold">
+                          Sent
+                        </span>
+                      ) : hasReceived ? (
+                        <button
+                          onClick={() =>
+                            setRequests((prev) =>
+                              prev.filter(
+                                (r) =>
+                                  !(r.from === user.sessionId && r.to === "me")
+                              )
+                            )
+                          }
+                          className="px-3 py-1.5 bg-green-500/70 rounded hover:bg-green-500/90 text-white text-sm font-semibold"
+                        >
+                          Accept
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => sendRequest(user.sessionId)}
+                          className="bg-gradient-to-r from-teal-400/20 to-blue-400/20 hover:from-teal-400/30 hover:to-blue-400/30 text-teal-300 px-4 py-2.5 rounded-xl transition-all text-sm font-semibold border border-teal-400/20 hover:border-teal-400/40 shadow-lg"
+                        >
+                          Challenge
+                        </button>
+                      )}
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>
