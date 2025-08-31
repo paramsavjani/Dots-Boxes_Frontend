@@ -108,12 +108,23 @@ export default function Lobby() {
     fetchRequests(sid);
   }, [fetchOnlineUsers, fetchRequests]);
 
+  const refreshAll = () => {
+    fetchOnlineUsers();
+    fetchRequests(sessionId);
+  };
+
   const handleChangeUsername = () => {
     getSocket(sessionId).disconnect();
     localStorage.removeItem("username");
     sessionStorage.removeItem("sessionId");
     router.push("/");
   };
+
+
+  function acceptRequest(toSessionId: string): void {
+    const socket = getSocket(sessionId);
+    socket.emit("acceptFriendRequest", toSessionId);
+  }
 
   const otherUsers = onlineUsers.filter((u) => u.username !== username);
 
@@ -142,7 +153,7 @@ export default function Lobby() {
 
               {/* Refresh Button */}
               <button
-                onClick={fetchOnlineUsers}
+                onClick={refreshAll}
                 disabled={isRefreshing}
                 className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all"
               >
@@ -176,6 +187,8 @@ export default function Lobby() {
                     (r) => r.from === user.sessionId && r.to === "me"
                   );
 
+                  
+
                   return (
                     <div
                       key={user.socketId}
@@ -199,14 +212,9 @@ export default function Lobby() {
                       ) : hasReceived ? (
                         <button
                           onClick={() =>
-                            setRequests((prev) =>
-                              prev.filter(
-                                (r) =>
-                                  !(r.from === user.sessionId && r.to === "me")
-                              )
-                            )
+                            acceptRequest(user.sessionId)
                           }
-                          className="flex items-center gap-2 px-4 py-2 bg-green-300/30 rounded-xl border border-green-400/30 hover:bg-green-500/30 transition-colors duration-300"
+                          className="flex items-center gap-2 px-3 py-2 bg-green-800/40 rounded-xl border border-green-400/30 hover:bg-green-500/30 transition-colors duration-300"
                         >
                           <span className="text-green-300 text-sm font-bold">
                             Accept
@@ -234,7 +242,6 @@ export default function Lobby() {
         </div>
       </div>
 
-      {/* Profile Bar - Fixed Bottom */}
       <div className="fixed bottom-0 left-0 right-0 p-4 sm:p-6">
         <div className="max-w-lg mx-auto">
           <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-4 shadow-2xl">
