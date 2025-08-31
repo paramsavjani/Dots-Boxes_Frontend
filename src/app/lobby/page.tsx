@@ -115,9 +115,7 @@ export default function Lobby() {
     router.push("/");
   };
 
-
   const otherUsers = onlineUsers.filter((u) => u.username !== username);
-
 
   return (
     <div className="min-h-screen flex flex-col relative">
@@ -193,9 +191,11 @@ export default function Lobby() {
                       </div>
 
                       {hasSent ? (
-                        <span className="text-blue-400 text-sm font-semibold">
-                          Sent
-                        </span>
+                        <div className="flex items-center gap-2 px-4 py-2 bg-amber-500/20 rounded-xl border border-amber-400/30">
+                          <span className="text-amber-300 text-sm font-bold">
+                            Pending
+                          </span>
+                        </div>
                       ) : hasReceived ? (
                         <button
                           onClick={() =>
@@ -206,16 +206,23 @@ export default function Lobby() {
                               )
                             )
                           }
-                          className="px-3 py-1.5 bg-green-500/70 rounded hover:bg-green-500/90 text-white text-sm font-semibold"
+                          className="group/accept px-4 py-2.5 bg-gradient-to-r from-emerald-500/70 to-green-500/70 hover:from-emerald-500/90 hover:to-green-500/90 rounded-xl text-white text-sm font-bold transition-all duration-300 shadow-lg hover:shadow-emerald-400/30 hover:shadow-xl border border-emerald-400/50 hover:border-emerald-400/70 active:scale-95 hover:scale-105"
                         >
-                          Accept
+                          <span className="flex items-center gap-2">
+                            Accept
+                          </span>
                         </button>
                       ) : (
                         <button
                           onClick={() => sendRequest(user.sessionId)}
-                          className="bg-gradient-to-r from-teal-400/20 to-blue-400/20 hover:from-teal-400/30 hover:to-blue-400/30 text-teal-300 px-4 py-2.5 rounded-xl transition-all text-sm font-semibold border border-teal-400/20 hover:border-teal-400/40 shadow-lg"
+                          className="group/challenge relative overflow-hidden bg-gradient-to-r from-violet-500/20 to-purple-500/20 hover:from-violet-500/30 hover:to-purple-500/30 text-violet-200 hover:text-violet-100 px-5 py-2.5 rounded-xl transition-all duration-300 text-sm font-bold border border-violet-400/30 hover:border-violet-400/50 shadow-lg hover:shadow-violet-400/20 hover:shadow-xl active:scale-95 hover:scale-105"
                         >
-                          Challenge
+                          {/* Animated background overlay */}
+                          <div className="absolute inset-0 bg-gradient-to-r from-violet-600/0 via-purple-600/20 to-violet-600/0 translate-x-[-100%] group-hover/challenge:translate-x-[100%] transition-transform duration-700 ease-in-out"></div>
+
+                          <span className="relative flex items-center gap-2">
+                            Challenge
+                          </span>
                         </button>
                       )}
                     </div>
