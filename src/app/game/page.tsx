@@ -1,6 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import { useEffect, useState } from "react";
+
+import type React from "react";
+
+import { useEffect, useRef, useState } from "react";
 import { getSocket } from "@/lib/socket";
 import { useRouter } from "next/navigation";
 
@@ -63,11 +66,22 @@ export default function GamePage() {
   const [player1, setPlayer1] = useState<string>("");
   const [player2, setPlayer2] = useState<string>("");
 
+  // Board is 260x260, 5x5 dots -> 4 cells of 60px each, dot size 20px
+  const BOARD_SIZE = 260;
+  const DOTS = 5;
+  const CELLS = DOTS - 1; // 4
+  const CELL = 60; // px
+  const DOT = 20; // px
+  const DOT_RADIUS = DOT / 2;
+  const LINE = 3; // px thickness for crisp lines
+  const GAP = CELL - DOT; // space between adjacent dots' edges = 40
+
+  const boardRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
     const socketInstance = getSocket(sessionStorage.getItem("sessionId") || "");
     setSocket(socketInstance);
 
-    // Listen for active room
     socketInstance.emit("checkActiveRoom");
 
     socketInstance.on("activeRoom", (room: string | null) => {
@@ -82,23 +96,19 @@ export default function GamePage() {
       setLoading(false);
     });
 
-    // Listen for game state updates
     socketInstance.on("gameStateUpdate", (newGameState: GameState) => {
-      console.log(newGameState);
       setPlayer1(newGameState.players.player1?.name || "Player 1");
       setPlayer2(newGameState.players.player2?.name || "Player 2");
       setGameState(newGameState);
     });
 
-    // Listen for player role assignment
     socketInstance.on("playerRoleAssigned", (role: "player1" | "player2") => {
       setPlayerRole(role);
     });
 
-    // Listen for connection updates
-    socketInstance.on("connectionMade", (gameState: GameState) => {
-      setGameState(gameState);
-      setSelectedDot(null); // Clear selection after move
+    socketInstance.on("connectionMade", (gs: GameState) => {
+      setGameState(gs);
+      setSelectedDot(null);
     });
 
     socketInstance.on("userLeft", () => {
@@ -108,7 +118,6 @@ export default function GamePage() {
       router.push("/lobby");
     });
 
-    // Listen for game over
     socketInstance.on("gameFinished", (finalGameState: GameState) => {
       setGameState(finalGameState);
     });
@@ -120,16 +129,15 @@ export default function GamePage() {
       socketInstance.off("connectionMade");
       socketInstance.off("gameFinished");
     };
-  }, []);
+  }, [router]);
 
-  // Check if two positions are adjacent (horizontal or vertical)
+  // Helpers
   const areAdjacent = (pos1: Position, pos2: Position): boolean => {
     const rowDiff = Math.abs(pos1.row - pos2.row);
     const colDiff = Math.abs(pos1.col - pos2.col);
     return (rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1);
   };
 
-  // Check if a connection already exists
   const connectionExists = (from: Position, to: Position): boolean => {
     if (!gameState) return false;
     return gameState.connections.some(
@@ -145,7 +153,6 @@ export default function GamePage() {
     );
   };
 
-  // Get connection between two positions
   const getConnection = (from: Position, to: Position): Connection | null => {
     if (!gameState) return null;
     return (
@@ -163,7 +170,22 @@ export default function GamePage() {
     );
   };
 
-  // Handle dot click
+  const emitMove = (from: Position, to: Position) => {
+    if (!gameState || !playerRole || !socket) return;
+    if (gameState.gameStatus !== "playing") return;
+    if (gameState.currentPlayer !== playerRole) return;
+    if (!areAdjacent(from, to)) return;
+    if (connectionExists(from, to)) return;
+
+    socket.emit("makeMove", {
+      roomId: gameState.roomId,
+      from,
+      to,
+      player: playerRole,
+    });
+  };
+
+  // Dot/tap click flow remains (tap two adjacent dots)
   const handleDotClick = (position: Position) => {
     if (!gameState || !playerRole || !socket) return;
     if (gameState.gameStatus !== "playing") return;
@@ -176,98 +198,194 @@ export default function GamePage() {
         selectedDot.row === position.row &&
         selectedDot.col === position.col
       ) {
-        // Deselect if clicking the same dot
         setSelectedDot(null);
       } else if (areAdjacent(selectedDot, position)) {
-        // Try to create connection
-        if (!connectionExists(selectedDot, position)) {
-          // Emit move to server
-          socket.emit("makeMove", {
-            roomId: gameState.roomId,
-            from: selectedDot,
-            to: position,
-            player: playerRole,
-          });
-        }
+        emitMove(selectedDot, position);
         setSelectedDot(null);
       } else {
-        // Select new dot if not adjacent
         setSelectedDot(position);
       }
     }
   };
 
-  // Render horizontal line (only if connection exists)
+  const handleBoardPointer = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!gameState || !playerRole || !socket) return;
+    if (gameState.gameStatus !== "playing") return;
+    if (gameState.currentPlayer !== playerRole) return;
+
+    // Ignore if directly interacting with a dot button (so existing behavior stays)
+    const t = e.target as HTMLElement;
+    if (t && (t.tagName === "BUTTON" || t.closest("button"))) return;
+
+    const rect = boardRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Hit slop around lines in px
+    const HIT = 12;
+
+    type EdgeHit = {
+      from: Position;
+      to: Position;
+      dist2: number;
+    };
+
+    const candidates: EdgeHit[] = [];
+
+    // Horizontal edges
+    for (let row = 0; row < DOTS; row++) {
+      for (let col = 0; col < CELLS; col++) {
+        const xStart = col * CELL + DOT;
+        const xEnd = (col + 1) * CELL;
+        const yLine = row * CELL + DOT_RADIUS;
+
+        const withinRect =
+          x >= xStart - HIT &&
+          x <= xEnd + HIT &&
+          y >= yLine - HIT &&
+          y <= yLine + HIT;
+
+        if (withinRect) {
+          // distance squared to center for tie-breaking
+          const cx = (xStart + xEnd) / 2;
+          const cy = yLine;
+          const dx = x - cx;
+          const dy = y - cy;
+          candidates.push({
+            from: { row, col },
+            to: { row, col: col + 1 },
+            dist2: dx * dx + dy * dy,
+          });
+        }
+      }
+    }
+
+    // Vertical edges
+    for (let row = 0; row < CELLS; row++) {
+      for (let col = 0; col < DOTS; col++) {
+        const xLine = col * CELL + DOT_RADIUS;
+        const yStart = row * CELL + DOT;
+        const yEnd = (row + 1) * CELL;
+
+        const withinRect =
+          x >= xLine - HIT &&
+          x <= xLine + HIT &&
+          y >= yStart - HIT &&
+          y <= yEnd + HIT;
+
+        if (withinRect) {
+          const cx = xLine;
+          const cy = (yStart + yEnd) / 2;
+          const dx = x - cx;
+          const dy = y - cy;
+          candidates.push({
+            from: { row, col },
+            to: { row: row + 1, col },
+            dist2: dx * dx + dy * dy,
+          });
+        }
+      }
+    }
+
+    if (candidates.length === 0) return;
+
+    // Pick nearest edge center
+    candidates.sort((a, b) => a.dist2 - b.dist2);
+    const { from, to } = candidates[0];
+
+    if (!connectionExists(from, to)) {
+      emitMove(from, to);
+    }
+  };
+
   const renderHorizontalLine = (row: number, col: number) => {
     const from = { row, col };
     const to = { row, col: col + 1 };
     const connection = getConnection(from, to);
-
     if (!connection) return null;
 
     return (
       <div
         key={`h-${row}-${col}`}
-        className={`absolute w-12 h-1 ${
+        className={`absolute ${
           connection.player === "player1" ? "bg-blue-500" : "bg-red-500"
         }`}
         style={{
-          left: `${col * 60 + 20}px`,
-          top: `${row * 60 + 10}px`,
+          left: `${col * CELL + DOT}px`,
+          top: `${row * CELL + DOT_RADIUS - Math.floor(LINE / 2)}px`,
+          width: `${GAP}px`,
+          height: `${LINE}px`,
+          borderRadius: "9999px",
+          boxShadow: "0 0 0.5px rgba(255,255,255,0.1)",
         }}
       />
     );
   };
 
-  // Render vertical line (only if connection exists)
   const renderVerticalLine = (row: number, col: number) => {
     const from = { row, col };
     const to = { row: row + 1, col };
     const connection = getConnection(from, to);
-
     if (!connection) return null;
 
     return (
       <div
         key={`v-${row}-${col}`}
-        className={`absolute w-1 h-12 ${
+        className={`absolute ${
           connection.player === "player1" ? "bg-blue-500" : "bg-red-500"
         }`}
         style={{
-          left: `${col * 60 + 10}px`,
-          top: `${row * 60 + 20}px`,
+          left: `${col * CELL + DOT_RADIUS - Math.floor(LINE / 2)}px`,
+          top: `${row * CELL + DOT}px`,
+          width: `${LINE}px`,
+          height: `${GAP}px`,
+          borderRadius: "9999px",
+          boxShadow: "0 0 0.5px rgba(255,255,255,0.1)",
         }}
       />
     );
   };
 
-  // Render completed square
   const renderCompletedSquare = (square: CompletedSquare) => {
     return (
       <div
         key={`square-${square.topLeft.row}-${square.topLeft.col}`}
-        className={`absolute w-12 h-12 flex items-center justify-center text-white font-bold text-sm ${
-          square.player === "player1"
-            ? "bg-blue-500 bg-opacity-50"
-            : "bg-red-500 bg-opacity-50"
-        }`}
+        className={`absolute flex items-center justify-center text-white font-semibold text-sm`}
         style={{
-          left: `${square.topLeft.col * 60 + 20}px`,
-          top: `${square.topLeft.row * 60 + 20}px`,
+          left: `${square.topLeft.col * CELL + DOT}px`,
+          top: `${square.topLeft.row * CELL + DOT}px`,
+          width: `${GAP}px`,
+          height: `${GAP}px`,
+          borderRadius: "8px",
+          background:
+            square.player === "player1"
+              ? "rgba(59,130,246,0.22)" // blue-500 @ ~22%
+              : "rgba(239,68,68,0.22)", // red-500 @ ~22%
+          backdropFilter: "blur(2px)",
+          border: "1px solid rgba(255,255,255,0.08)",
         }}
+        aria-label={`Square owned by ${
+          square.player === "player1"
+            ? player1 || "Player 1"
+            : player2 || "Player 2"
+        }`}
       >
         {square.player === "player1" ? "1" : "2"}
       </div>
     );
   };
 
-  if (loading) return <p className="text-white">Checking game session...</p>;
+  if (loading) return <p className="text-white/80">Checking game session...</p>;
 
   if (!roomId) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-white">
-        <h2>No active game found 🚫</h2>
-        <p>Go back to lobby and start a match.</p>
+        <h2 className="text-xl font-semibold">No active game found</h2>
+        <p className="text-sm text-white/70">
+          Go back to lobby and start a match.
+        </p>
       </div>
     );
   }
@@ -275,8 +393,8 @@ export default function GamePage() {
   if (!gameState) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-white">
-        <h2>Loading game...</h2>
-        <p>Connecting to room {roomId}</p>
+        <h2 className="text-xl font-semibold">Loading game...</h2>
+        <p className="text-sm text-white/70">Connecting to room {roomId}</p>
       </div>
     );
   }
@@ -290,64 +408,80 @@ export default function GamePage() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen backdrop-blur-0 text-white p-4">
-      <h2 className="text-2xl font-bold mb-2">Dots & Boxes</h2>
+    <div className="flex flex-col items-center justify-center min-h-screen text-white p-4">
+      <header className="mb-4 text-center">
+        <h1 className="text-2xl font-bold tracking-tight text-white drop-shadow-[0_1px_0_rgba(0,0,0,0.4)]">
+          Dots & Boxes
+        </h1>
+      </header>
 
       {/* Player Info */}
-      <div className="flex gap-4 mb-4">
+      <div className="flex gap-4 mb-3">
         <div
-          className={`p-3 rounded-lg border-2 ${
+          className={`p-3 rounded-xl border bg-white/5 backdrop-blur-sm ${
             gameState.currentPlayer === "player1"
-              ? "border-blue-400 bg-blue-900"
-              : "border-blue-700 bg-blue-950"
-          } ${playerRole === "player1" ? "ring-2 ring-yellow-400" : ""}`}
+              ? "border-blue-400/40 ring-2 ring-blue-400/40"
+              : "border-white/15"
+          } ${
+            playerRole === "player1"
+              ? "outline outline-1 outline-yellow-400/50"
+              : ""
+          }`}
         >
           <div className="text-center">
-            <p className="text-sm">{player1}</p>
+            <p className="text-xs text-white/80">{player1}</p>
             <p className="text-xl font-bold">{gameState.scores.player1}</p>
             {playerRole === "player1" && (
-              <p className="text-xs text-yellow-400">You</p>
+              <p className="text-[10px] text-yellow-300/90">You</p>
             )}
           </div>
         </div>
 
         <div
-          className={`p-3 rounded-lg border-2 ${
+          className={`p-3 rounded-xl border bg-white/5 backdrop-blur-sm ${
             gameState.currentPlayer === "player2"
-              ? "border-red-400 bg-red-900"
-              : "border-red-700 bg-red-950"
-          } ${playerRole === "player2" ? "ring-2 ring-yellow-400" : ""}`}
+              ? "border-red-400/40 ring-2 ring-red-400/40"
+              : "border-white/15"
+          } ${
+            playerRole === "player2"
+              ? "outline outline-1 outline-yellow-400/50"
+              : ""
+          }`}
         >
           <div className="text-center">
-            <p className="text-sm">{player2}</p>
+            <p className="text-xs text-white/80">{player2}</p>
             <p className="text-xl font-bold">{gameState.scores.player2}</p>
             {playerRole === "player2" && (
-              <p className="text-xs text-yellow-400">You</p>
+              <p className="text-[10px] text-yellow-300/90">You</p>
             )}
           </div>
         </div>
       </div>
 
       {/* Game Status */}
-      <div className="mb-4 text-center">
+      <div className="mb-3 text-center">
         {gameState.gameStatus === "waiting" && (
-          <p className="text-yellow-400">Waiting for players...</p>
+          <p className="text-yellow-300">Waiting for players…</p>
         )}
         {gameState.gameStatus === "playing" && (
           <p
-            className={`text-lg ${
-              canPlay ? "text-green-400" : "text-gray-400"
+            className={`text-sm ${
+              canPlay ? "text-emerald-300" : "text-white/60"
             }`}
           >
             {canPlay
               ? "Your turn!"
-              : `${gameState.currentPlayer === "player1" ? player1 : player2}'s turn`}
+              : `${
+                  gameState.currentPlayer === "player1" ? player1 : player2
+                }'s turn`}
           </p>
         )}
         {gameState.gameStatus === "finished" && (
           <div>
-            <h3 className="text-xl font-bold text-yellow-400">Game Over!</h3>
-            <p className="text-lg">
+            <h3 className="text-lg font-bold text-yellow-300 drop-shadow">
+              Game Over!
+            </h3>
+            <p className="text-sm">
               {gameState.winner === "tie"
                 ? "It's a Tie!"
                 : `Player ${gameState.winner === "player1" ? "1" : "2"} Wins!`}
@@ -357,25 +491,40 @@ export default function GamePage() {
       </div>
 
       {/* Game Board */}
-      <div className="relative w-[260px] h-[260px] mt-4 mb-4 bg-black/80 backdrop-blur-xl p-2 rounded-lg">
+      <div
+        ref={boardRef}
+        className="relative rounded-2xl"
+        style={{
+          width: `${BOARD_SIZE}px`,
+          height: `${BOARD_SIZE}px`,
+          background: "rgba(255,255,255,0.04)",
+          backdropFilter: "blur(4px)",
+          border: "1px solid rgba(255,255,255,0.12)",
+          boxShadow:
+            "inset 0 1px 0 rgba(255,255,255,0.05), 0 10px 30px rgba(0,0,0,0.25)",
+        }}
+        onPointerDown={handleBoardPointer}
+      >
         {/* Completed Squares */}
         {gameState.completedSquares.map((square) =>
           renderCompletedSquare(square)
         )}
 
-        {/* Horizontal Lines (only show if connected) */}
-        {Array.from({ length: 5 }, (_, row) =>
-          Array.from({ length: 4 }, (_, col) => renderHorizontalLine(row, col))
+        {/* Horizontal Lines */}
+        {Array.from({ length: DOTS }, (_, row) =>
+          Array.from({ length: CELLS }, (_, col) =>
+            renderHorizontalLine(row, col)
+          )
         )}
 
-        {/* Vertical Lines (only show if connected) */}
-        {Array.from({ length: 4 }, (_, row) =>
-          Array.from({ length: 5 }, (_, col) => renderVerticalLine(row, col))
+        {/* Vertical Lines */}
+        {Array.from({ length: CELLS }, (_, row) =>
+          Array.from({ length: DOTS }, (_, col) => renderVerticalLine(row, col))
         )}
 
         {/* Dots */}
-        {Array.from({ length: 5 }, (_, row) =>
-          Array.from({ length: 5 }, (_, col) => {
+        {Array.from({ length: DOTS }, (_, row) =>
+          Array.from({ length: DOTS }, (_, col) => {
             const position = { row, col };
             const isSelected =
               selectedDot && selectedDot.row === row && selectedDot.col === col;
@@ -383,18 +532,27 @@ export default function GamePage() {
             return (
               <button
                 key={`dot-${row}-${col}`}
-                className={`absolute w-5 h-5 rounded-full border-2 transition-all ${
-                  isSelected
-                    ? "bg-yellow-400 border-yellow-300 scale-125"
-                    : "bg-white border-gray-300 hover:bg-gray-200"
-                } ${
-                  canPlay
-                    ? "cursor-pointer hover:scale-110"
-                    : "cursor-not-allowed opacity-70"
-                }`}
+                aria-label={`Grid dot ${row + 1},${col + 1}`}
+                className={`absolute rounded-full border transition-transform will-change-transform
+                  ${
+                    isSelected
+                      ? "bg-yellow-300 border-yellow-200 scale-125"
+                      : "bg-white border-white/60 hover:bg-white/90"
+                  }
+                  ${
+                    canPlay
+                      ? "cursor-pointer hover:scale-110"
+                      : "cursor-not-allowed opacity-70"
+                  }
+                `}
                 style={{
-                  left: `${col * 60}px`,
-                  top: `${row * 60}px`,
+                  width: `${DOT}px`,
+                  height: `${DOT}px`,
+                  left: `${col * CELL}px`,
+                  top: `${row * CELL}px`,
+                  boxShadow: isSelected
+                    ? "0 0 12px rgba(250,204,21,0.5)"
+                    : "0 0 6px rgba(255,255,255,0.25)",
                 }}
                 onClick={() => handleDotClick(position)}
                 disabled={!canPlay}
@@ -405,22 +563,28 @@ export default function GamePage() {
       </div>
 
       {/* Instructions */}
-      <div className="mt-6 text-center max-w-md">
-        <p className="text-sm text-gray-300 mb-2">
+      <div className="mt-4 text-center max-w-md">
+        <p className="text-xs text-white/70">
           {canPlay
-            ? "Click on dots to select them, then click an adjacent dot to draw a line."
+            ? "Tap a dot then an adjacent dot, or tap between two dots to draw a line."
             : "Wait for your turn to make a move."}
         </p>
       </div>
 
       {/* Connection Status */}
-      <div className="mt-4 text-xs text-gray-500">
+      <div className="mt-3 text-[11px] text-white/50">
         Status: {gameState.gameStatus} | Connections:{" "}
         {gameState.connections.length} | Squares:{" "}
         {gameState.completedSquares.length}/16
       </div>
-      <div className="mt-4 text-xs text-gray-500">
-        <button onClick={leave}> leave match</button>
+
+      <div className="mt-2">
+        <button
+          onClick={leave}
+          className="text-xs text-white/80 hover:text-white underline underline-offset-2"
+        >
+          Leave match
+        </button>
       </div>
     </div>
   );
