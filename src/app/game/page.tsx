@@ -69,15 +69,16 @@ export default function GamePage() {
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showOpponentLeft, setShowOpponentLeft] = useState(false);
 
-  // Board is 260x260, 5x5 dots -> 4 cells of 60px each, dot size 20px
-  const BOARD_SIZE = 260;
-  const DOTS = 5;
-  const CELLS = DOTS - 1; // 4
-  const CELL = 60; // px
-  const DOT = 20; // px
+  const DOTS = 6;
+  const DOT = 13;
+  const CELL = 55;
+
+
+  const CELLS = DOTS - 1;
   const DOT_RADIUS = DOT / 2;
-  const LINE = 3; // px thickness for crisp lines
-  const GAP = CELL - DOT; // space between adjacent dots' edges = 40
+  const LINE = 4;
+  const GAP = CELL - DOT;
+  const BOARD_SIZE = CELL * CELLS + DOT;
 
   const boardRef = useRef<HTMLDivElement | null>(null);
 
