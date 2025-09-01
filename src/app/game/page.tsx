@@ -547,7 +547,6 @@ export default function GamePage() {
             width: `${BOARD_SIZE}px`,
             height: `${BOARD_SIZE}px`,
             background: "rgba(255,255,255,0)",
-            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
           }}
           onPointerDown={handleBoardPointer}
         >
