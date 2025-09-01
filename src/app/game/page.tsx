@@ -60,6 +60,8 @@ export default function GamePage() {
   );
   const [socket, setSocket] = useState<any>(null);
   const router = useRouter();
+  const [player1, setPlayer1] = useState<string>("");
+  const [player2, setPlayer2] = useState<string>("");
 
   useEffect(() => {
     const socketInstance = getSocket(sessionStorage.getItem("sessionId") || "");
@@ -78,13 +80,13 @@ export default function GamePage() {
       }
       setRoomId(room);
       setLoading(false);
-      if (room) {
-        socketInstance.emit("joinGameRoom", room);
-      }
     });
 
     // Listen for game state updates
     socketInstance.on("gameStateUpdate", (newGameState: GameState) => {
+      console.log(newGameState);
+      setPlayer1(newGameState.players.player1?.name || "Player 1");
+      setPlayer2(newGameState.players.player2?.name || "Player 2");
       setGameState(newGameState);
     });
 
@@ -97,6 +99,13 @@ export default function GamePage() {
     socketInstance.on("connectionMade", (gameState: GameState) => {
       setGameState(gameState);
       setSelectedDot(null); // Clear selection after move
+    });
+
+    socketInstance.on("userLeft", () => {
+      alert(
+        "The other player has left the game. You will be redirected to the lobby."
+      );
+      router.push("/lobby");
     });
 
     // Listen for game over
@@ -275,6 +284,11 @@ export default function GamePage() {
   const isMyTurn = gameState.currentPlayer === playerRole;
   const canPlay = gameState.gameStatus === "playing" && isMyTurn;
 
+  function leave(): void {
+    socket.emit("leaveGame", roomId);
+    router.push("/lobby");
+  }
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen backdrop-blur-0 text-white p-4">
       <h2 className="text-2xl font-bold mb-2">Dots & Boxes</h2>
@@ -289,7 +303,7 @@ export default function GamePage() {
           } ${playerRole === "player1" ? "ring-2 ring-yellow-400" : ""}`}
         >
           <div className="text-center">
-            <p className="text-sm">Player 1</p>
+            <p className="text-sm">{player1}</p>
             <p className="text-xl font-bold">{gameState.scores.player1}</p>
             {playerRole === "player1" && (
               <p className="text-xs text-yellow-400">You</p>
@@ -305,7 +319,7 @@ export default function GamePage() {
           } ${playerRole === "player2" ? "ring-2 ring-yellow-400" : ""}`}
         >
           <div className="text-center">
-            <p className="text-sm">Player 2</p>
+            <p className="text-sm">{player2}</p>
             <p className="text-xl font-bold">{gameState.scores.player2}</p>
             {playerRole === "player2" && (
               <p className="text-xs text-yellow-400">You</p>
@@ -327,9 +341,7 @@ export default function GamePage() {
           >
             {canPlay
               ? "Your turn!"
-              : `Player ${
-                  gameState.currentPlayer === "player1" ? "1" : "2"
-                }'s turn`}
+              : `${gameState.currentPlayer === "player1" ? player1 : player2}'s turn`}
           </p>
         )}
         {gameState.gameStatus === "finished" && (
@@ -364,15 +376,15 @@ export default function GamePage() {
         {/* Dots */}
         {Array.from({ length: 5 }, (_, row) =>
           Array.from({ length: 5 }, (_, col) => {
-        const position = { row, col };
-        const isSelected =
-          selectedDot && selectedDot.row === row && selectedDot.col === col;
+            const position = { row, col };
+            const isSelected =
+              selectedDot && selectedDot.row === row && selectedDot.col === col;
 
-        return (
-          <button
-            key={`dot-${row}-${col}`}
-            className={`absolute w-5 h-5 rounded-full border-2 transition-all ${
-          isSelected
+            return (
+              <button
+                key={`dot-${row}-${col}`}
+                className={`absolute w-5 h-5 rounded-full border-2 transition-all ${
+                  isSelected
                     ? "bg-yellow-400 border-yellow-300 scale-125"
                     : "bg-white border-gray-300 hover:bg-gray-200"
                 } ${
@@ -399,11 +411,6 @@ export default function GamePage() {
             ? "Click on dots to select them, then click an adjacent dot to draw a line."
             : "Wait for your turn to make a move."}
         </p>
-        {selectedDot && (
-          <p className="text-yellow-400 text-sm">
-            Selected dot at ({selectedDot.row}, {selectedDot.col})
-          </p>
-        )}
       </div>
 
       {/* Connection Status */}
@@ -411,6 +418,9 @@ export default function GamePage() {
         Status: {gameState.gameStatus} | Connections:{" "}
         {gameState.connections.length} | Squares:{" "}
         {gameState.completedSquares.length}/16
+      </div>
+      <div className="mt-4 text-xs text-gray-500">
+        <button onClick={leave}> leave match</button>
       </div>
     </div>
   );
