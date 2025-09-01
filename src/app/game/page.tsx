@@ -2,6 +2,7 @@
 "use client";
 
 import type React from "react";
+import { User, LogOut } from "lucide-react";
 
 import { useEffect, useRef, useState } from "react";
 import { getSocket } from "@/lib/socket";
@@ -65,6 +66,8 @@ export default function GamePage() {
   const router = useRouter();
   const [player1, setPlayer1] = useState<string>("");
   const [player2, setPlayer2] = useState<string>("");
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [showOpponentLeft, setShowOpponentLeft] = useState(false);
 
   // Board is 260x260, 5x5 dots -> 4 cells of 60px each, dot size 20px
   const BOARD_SIZE = 260;
@@ -112,10 +115,7 @@ export default function GamePage() {
     });
 
     socketInstance.on("userLeft", () => {
-      alert(
-        "The other player has left the game. You will be redirected to the lobby."
-      );
-      router.push("/lobby");
+      setShowOpponentLeft(true);
     });
 
     socketInstance.on("gameFinished", (finalGameState: GameState) => {
@@ -128,6 +128,7 @@ export default function GamePage() {
       socketInstance.off("playerRoleAssigned");
       socketInstance.off("connectionMade");
       socketInstance.off("gameFinished");
+      socketInstance.off("userLeft");
     };
   }, [router]);
 
@@ -402,23 +403,27 @@ export default function GamePage() {
   const isMyTurn = gameState.currentPlayer === playerRole;
   const canPlay = gameState.gameStatus === "playing" && isMyTurn;
 
-  function leave(): void {
+  function requestLeave(): void {
+    setShowLeaveConfirm(true);
+  }
+  function confirmLeave(): void {
     socket.emit("leaveGame", roomId);
     router.push("/lobby");
   }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen text-white p-4">
-      <header className="mb-4 text-center">
+      <header className="mb-4 text-center flex items-center justify-center gap-2">
         <h1 className="text-2xl font-bold tracking-tight text-white drop-shadow-[0_1px_0_rgba(0,0,0,0.4)]">
           Dots & Boxes
         </h1>
+        <User size={24} />
       </header>
 
       {/* Player Info */}
       <div className="flex gap-4 mb-3">
         <div
-          className={`p-3 rounded-xl border bg-white/5 backdrop-blur-sm ${
+          className={`p-3 rounded-xl border bg-white/5 backdrop-blur-sm flex items-center gap-2 ${
             gameState.currentPlayer === "player1"
               ? "border-blue-400/40 ring-2 ring-blue-400/40"
               : "border-white/15"
@@ -438,7 +443,7 @@ export default function GamePage() {
         </div>
 
         <div
-          className={`p-3 rounded-xl border bg-white/5 backdrop-blur-sm ${
+          className={`p-3 rounded-xl border bg-white/5 backdrop-blur-sm flex items-center gap-2 ${
             gameState.currentPlayer === "player2"
               ? "border-red-400/40 ring-2 ring-red-400/40"
               : "border-white/15"
@@ -493,12 +498,12 @@ export default function GamePage() {
       {/* Game Board */}
       <div
         ref={boardRef}
-        className="relative rounded-2xl"
+        className="relative rounded-xl"
         style={{
           width: `${BOARD_SIZE}px`,
           height: `${BOARD_SIZE}px`,
-          background: "rgba(255,255,255,0.04)",
-          backdropFilter: "blur(4px)",
+          background: "rgba(0,0,0,0.2)",
+          backdropFilter: "blur(5px)",
           border: "1px solid rgba(255,255,255,0.12)",
           boxShadow:
             "inset 0 1px 0 rgba(255,255,255,0.05), 0 10px 30px rgba(0,0,0,0.25)",
@@ -578,13 +583,93 @@ export default function GamePage() {
         {gameState.completedSquares.length}/16
       </div>
 
-      <div className="mt-2">
-        <button
-          onClick={leave}
-          className="text-xs text-white/80 hover:text-white underline underline-offset-2"
-        >
-          Leave match
-        </button>
+      {/* Leave Confirm Modal */}
+      {showLeaveConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowLeaveConfirm(false)}
+          />
+          <div className="relative z-10 max-w-sm w-[90%] bg-white/10 backdrop-blur-xl border border-white/15 rounded-2xl p-5 shadow-2xl">
+            <h3 className="text-white font-semibold text-lg mb-2">
+              Leave match?
+            </h3>
+            <p className="text-white/80 text-sm">
+              You will lose your current game progress. Are you sure you want to
+              leave?
+            </p>
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button
+                onClick={() => setShowLeaveConfirm(false)}
+                className="px-4 py-2 rounded-xl text-sm bg-white/10 hover:bg-white/15 text-white transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmLeave}
+                className="px-4 py-2 rounded-xl text-sm bg-red-500/80 hover:bg-red-500 text-white transition"
+              >
+                Leave match
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Opponent Left Modal */}
+      {showOpponentLeft && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="relative z-10 max-w-sm w-[90%] bg-white/10 backdrop-blur-xl border border-white/15 rounded-2xl p-5 shadow-2xl">
+            <h3 className="text-white font-semibold text-lg mb-2">
+              Opponent left
+            </h3>
+            <p className="text-white/80 text-sm">
+              The other player has left the game. Click OK to return to the
+              lobby.
+            </p>
+            <div className="mt-4 flex items-center justify-end">
+              <button
+                onClick={() => router.push("/lobby")}
+                className="px-4 py-2 rounded-xl text-sm bg-white/10 hover:bg-white/15 text-white transition"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="fixed bottom-0 left-0 right-0 p-4 sm:p-6 z-40 pointer-events-none">
+        <div className="max-w-lg mx-auto pointer-events-auto">
+          <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-4 shadow-2xl border border-white/15">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-teal-400/25 to-blue-500/25 rounded-xl flex items-center justify-center">
+                  <User className="w-5 h-5 text-teal-300" />
+                </div>
+                <div>
+                  <h3 className="text-white font-semibold text-base leading-tight">
+                    {playerRole === "player1"
+                      ? player1 || "Player 1"
+                      : player2 || "Player 2"}
+                  </h3>
+                  <p className="text-gray-300 text-xs">
+                    {canPlay ? "Your turn" : "Waiting…"}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={requestLeave}
+                className="bg-white/10 hover:bg-white/15 text-white px-3 sm:px-4 py-2.5 rounded-xl font-medium flex items-center gap-2 text-sm transition-all"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Leave match</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
