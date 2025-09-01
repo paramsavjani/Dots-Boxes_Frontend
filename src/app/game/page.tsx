@@ -379,7 +379,7 @@ export default function GamePage() {
     );
   };
 
-  if (loading) return <p className="text-white/80">Checking game session...</p>;
+  if (loading) return <></>;
 
   if (!roomId) {
     return (
@@ -634,7 +634,7 @@ export default function GamePage() {
           <span className="inline-flex items-center gap-1 px-2 py-1 rounded-xl bg-sky-500/15 text-sm text-sky-100 border border-sky-400/30">
             <span className="opacity-90">Squares:</span>
             <span className="font-semibold text-sky-300 tabular-nums">
-              {gameState.completedSquares.length}/16
+              {gameState.completedSquares.length}/{CELLS * CELLS}
             </span>
           </span>
         </div>
