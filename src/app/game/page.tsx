@@ -431,7 +431,6 @@ export default function GamePage() {
             Dots <span className="text-white/70">•</span> Boxes
           </h1>
         </div>
-        <User size={22} className="text-white/80" />
       </header>
 
       {/* Player Info */}
