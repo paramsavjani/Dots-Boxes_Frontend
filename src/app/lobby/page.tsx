@@ -119,9 +119,12 @@ export default function Lobby() {
   };
 
   const handleChangeUsername = () => {
-    getSocket(sessionId).disconnect();
     localStorage.removeItem("username");
     sessionStorage.removeItem("sessionId");
+
+    const socket = getSocket(sessionId);
+    socket.emit("leave");
+    socket.disconnect();
     router.push("/");
   };
 

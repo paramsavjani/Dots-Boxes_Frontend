@@ -9,12 +9,8 @@ export default function GamePage() {
 
   useEffect(() => {
     const socket = getSocket(sessionStorage.getItem("sessionId") || "");
-
-    const username = localStorage.getItem("username") || "";
-    socket.emit("join", username.trim());
     socket.emit("checkActiveRoom");
 
-    // listen for server response
     socket.on("activeRoom", (room: string | null) => {
       setRoomId(room);
       setLoading(false);
