@@ -69,14 +69,14 @@ export default function GamePage() {
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showOpponentLeft, setShowOpponentLeft] = useState(false);
 
-  // Board is 260x260, 5x5 dots -> 4 cells of 60px each, dot size 20px
-  const BOARD_SIZE = 260;
+  // Board is 320x320, 5x5 dots -> 4 cells of 75px each, dot size 20px
+  const BOARD_SIZE = 320;
   const DOTS = 5;
   const CELLS = DOTS - 1; // 4
-  const CELL = 60; // px
-  const DOT = 20; // px
+  const CELL = 75; // px
+  const DOT = 15; // px
   const DOT_RADIUS = DOT / 2;
-  const LINE = 3; // px thickness for crisp lines
+  const LINE = 4; // px thickness for crisp lines
   const GAP = CELL - DOT; // space between adjacent dots' edges = 40
 
   const boardRef = useRef<HTMLDivElement | null>(null);
@@ -413,52 +413,80 @@ export default function GamePage() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen text-white p-4">
-      <header className="mb-4 text-center flex items-center justify-center gap-2">
-        <h1 className="text-2xl font-bold tracking-tight text-white drop-shadow-[0_1px_0_rgba(0,0,0,0.4)]">
-          Dots & Boxes
-        </h1>
-        <User size={24} />
+      <header className="mb-4 text-center flex items-center justify-center gap-3">
+        <div className="px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 shadow-sm">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white text-balance">
+            Dots <span className="text-white/70">•</span> Boxes
+          </h1>
+        </div>
+        <User size={22} className="text-white/80" />
       </header>
 
       {/* Player Info */}
-      <div className="flex gap-4 mb-3">
+      <div className="flex gap-3 sm:gap-4 mb-3 w-full max-w-lg items-stretch">
         <div
-          className={`p-3 rounded-xl border bg-white/5 backdrop-blur-sm flex items-center gap-2 ${
-            gameState.currentPlayer === "player1"
-              ? "border-blue-400/40 ring-2 ring-blue-400/40"
-              : "border-white/15"
-          } ${
-            playerRole === "player1"
-              ? "outline outline-1 outline-yellow-400/50"
-              : ""
-          }`}
+          className={`flex-1 p-3 rounded-xl border bg-white/10 backdrop-blur-sm flex items-center justify-between gap-3
+            ${
+              gameState.currentPlayer === "player1"
+                ? "border-blue-400/40 ring-2 ring-blue-400/40"
+                : "border-white/15"
+            }
+            ${
+              playerRole === "player1"
+                ? "outline outline-1 outline-yellow-400/50"
+                : ""
+            }`}
         >
-          <div className="text-center">
+          <div className="flex items-center gap-2">
+            <div
+              className={`size-2.5 rounded-full ${
+                gameState.currentPlayer === "player1"
+                  ? "bg-blue-400 animate-pulse"
+                  : "bg-white/30"
+              }`}
+            />
             <p className="text-xs text-white/80">{player1}</p>
-            <p className="text-xl font-bold">{gameState.scores.player1}</p>
-            {playerRole === "player1" && (
-              <p className="text-[10px] text-yellow-300/90">You</p>
-            )}
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] text-white/60">
+              {playerRole === "player1" ? "You" : "\u00A0"}
+            </p>
+            <p className="text-xl font-bold leading-none">
+              {gameState.scores.player1}
+            </p>
           </div>
         </div>
 
         <div
-          className={`p-3 rounded-xl border bg-white/5 backdrop-blur-sm flex items-center gap-2 ${
-            gameState.currentPlayer === "player2"
-              ? "border-red-400/40 ring-2 ring-red-400/40"
-              : "border-white/15"
-          } ${
-            playerRole === "player2"
-              ? "outline outline-1 outline-yellow-400/50"
-              : ""
-          }`}
+          className={`flex-1 p-3 rounded-xl border bg-white/5 backdrop-blur-sm flex items-center justify-between gap-3
+            ${
+              gameState.currentPlayer === "player2"
+                ? "border-blue-400/40 ring-2 ring-blue-400/40"
+                : "border-white/15"
+            }
+            ${
+              playerRole === "player2"
+                ? "outline outline-1 outline-yellow-400/50"
+                : ""
+            }`}
         >
-          <div className="text-center">
+          <div className="flex items-center gap-2">
+            <div
+              className={`size-2.5 rounded-full ${
+                gameState.currentPlayer === "player2"
+                  ? "border-blue-400/40 ring-2 ring-blue-400/40"
+                  : "bg-white/30"
+              }`}
+            />
             <p className="text-xs text-white/80">{player2}</p>
-            <p className="text-xl font-bold">{gameState.scores.player2}</p>
-            {playerRole === "player2" && (
-              <p className="text-[10px] text-yellow-300/90">You</p>
-            )}
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] text-white/60">
+              {playerRole === "player2" ? "You" : "\u00A0"}
+            </p>
+            <p className="text-xl font-bold leading-none">
+              {gameState.scores.player2}
+            </p>
           </div>
         </div>
       </div>
@@ -497,90 +525,111 @@ export default function GamePage() {
 
       {/* Game Board */}
       <div
-        ref={boardRef}
-        className="relative rounded-xl"
-        style={{
-          width: `${BOARD_SIZE}px`,
-          height: `${BOARD_SIZE}px`,
-          background: "rgba(0,0,0,0.2)",
-          backdropFilter: "blur(5px)",
-          border: "1px solid rgba(255,255,255,0.12)",
-          boxShadow:
-            "inset 0 1px 0 rgba(255,255,255,0.05), 0 10px 30px rgba(0,0,0,0.25)",
-        }}
-        onPointerDown={handleBoardPointer}
+        className="relative rounded-2xl p-5 bg-white/5 backdrop-blur-xl border border-white/15 shadow-2xl"
+        style={{ width: `${BOARD_SIZE + 40}px` }}
       >
-        {/* Completed Squares */}
-        {gameState.completedSquares.map((square) =>
-          renderCompletedSquare(square)
-        )}
+        <div
+          ref={boardRef}
+          className="relative rounded-xl"
+          style={{
+            width: `${BOARD_SIZE}px`,
+            height: `${BOARD_SIZE}px`,
+            // keep the inner surface mostly transparent; the blur is on the wrapper
+            background: "rgba(255,255,255,0)",
+          }}
+          onPointerDown={handleBoardPointer}
+        >
+          {/* Completed Squares */}
+          {gameState.completedSquares.map((square) =>
+            renderCompletedSquare(square)
+          )}
 
-        {/* Horizontal Lines */}
-        {Array.from({ length: DOTS }, (_, row) =>
-          Array.from({ length: CELLS }, (_, col) =>
-            renderHorizontalLine(row, col)
-          )
-        )}
+          {/* Horizontal Lines */}
+          {Array.from({ length: DOTS }, (_, row) =>
+            Array.from({ length: CELLS }, (_, col) =>
+              renderHorizontalLine(row, col)
+            )
+          )}
 
-        {/* Vertical Lines */}
-        {Array.from({ length: CELLS }, (_, row) =>
-          Array.from({ length: DOTS }, (_, col) => renderVerticalLine(row, col))
-        )}
+          {/* Vertical Lines */}
+          {Array.from({ length: CELLS }, (_, row) =>
+            Array.from({ length: DOTS }, (_, col) =>
+              renderVerticalLine(row, col)
+            )
+          )}
 
-        {/* Dots */}
-        {Array.from({ length: DOTS }, (_, row) =>
-          Array.from({ length: DOTS }, (_, col) => {
-            const position = { row, col };
-            const isSelected =
-              selectedDot && selectedDot.row === row && selectedDot.col === col;
+          {/* Dots */}
+          {Array.from({ length: DOTS }, (_, row) =>
+            Array.from({ length: DOTS }, (_, col) => {
+              const position = { row, col };
+              const isSelected =
+                selectedDot &&
+                selectedDot.row === row &&
+                selectedDot.col === col;
 
-            return (
-              <button
-                key={`dot-${row}-${col}`}
-                aria-label={`Grid dot ${row + 1},${col + 1}`}
-                className={`absolute rounded-full border transition-transform will-change-transform
-                  ${
-                    isSelected
-                      ? "bg-yellow-300 border-yellow-200 scale-125"
-                      : "bg-white border-white/60 hover:bg-white/90"
-                  }
-                  ${
-                    canPlay
-                      ? "cursor-pointer hover:scale-110"
-                      : "cursor-not-allowed opacity-70"
-                  }
-                `}
-                style={{
-                  width: `${DOT}px`,
-                  height: `${DOT}px`,
-                  left: `${col * CELL}px`,
-                  top: `${row * CELL}px`,
-                  boxShadow: isSelected
-                    ? "0 0 12px rgba(250,204,21,0.5)"
-                    : "0 0 6px rgba(255,255,255,0.25)",
-                }}
-                onClick={() => handleDotClick(position)}
-                disabled={!canPlay}
-              />
-            );
-          })
-        )}
+              return (
+                <button
+                  key={`dot-${row}-${col}`}
+                  aria-label={`Grid dot ${row + 1},${col + 1}`}
+                  className={`absolute rounded-full border transition-transform will-change-transform
+                    ${
+                      isSelected
+                        ? "bg-yellow-300 border-yellow-200 scale-125"
+                        : "bg-white border-white/60 hover:bg-white/90"
+                    }
+                    ${
+                      canPlay
+                        ? "cursor-pointer hover:scale-110"
+                        : "cursor-not-allowed opacity-70"
+                    }
+                  `}
+                  style={{
+                    width: `${DOT}px`,
+                    height: `${DOT}px`,
+                    left: `${col * CELL}px`,
+                    top: `${row * CELL}px`,
+                    boxShadow: isSelected
+                      ? "0 0 12px rgba(250,204,21,0.5)"
+                      : "0 0 6px rgba(255,255,255,0.25)",
+                  }}
+                  onClick={() => handleDotClick(position)}
+                  disabled={!canPlay}
+                />
+              );
+            })
+          )}
+        </div>
       </div>
 
       {/* Instructions */}
       <div className="mt-4 text-center max-w-md">
-        <p className="text-xs text-white/70">
+        <p className="text-md text-white/80">
           {canPlay
-            ? "Tap a dot then an adjacent dot, or tap between two dots to draw a line."
+            ? "Tap between two dots to draw a line."
             : "Wait for your turn to make a move."}
         </p>
       </div>
 
       {/* Connection Status */}
-      <div className="mt-3 text-[11px] text-white/50">
-        Status: {gameState.gameStatus} | Connections:{" "}
-        {gameState.connections.length} | Squares:{" "}
-        {gameState.completedSquares.length}/16
+      <div className="mt-4 w-full max-w-lg">
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <span className="px-2.5 py-1 rounded-lg bg-white/10 text-[11px] text-white/85 border border-white/15">
+            Status: <span className="font-medium">{gameState.gameStatus}</span>
+          </span>
+          <span className="px-2.5 py-1 rounded-lg bg-white/10 text-[11px] text-white/85 border border-white/15">
+            Lines:{" "}
+            <span className="font-medium">{gameState.connections.length}</span>
+          </span>
+          <span className="px-2.5 py-1 rounded-lg bg-white/10 text-[11px] text-white/85 border border-white/15">
+            Squares:{" "}
+            <span className="font-medium">
+              {gameState.completedSquares.length}/16
+            </span>
+          </span>
+          <span className="px-2.5 py-1 rounded-lg bg-white/10 text-[11px] text-white/85 border border-white/15">
+            Room: <span className="font-mono">{roomId}</span>
+          </span>
+        </div>
       </div>
 
       {/* Leave Confirm Modal */}
@@ -627,6 +676,33 @@ export default function GamePage() {
             <p className="text-white/80 text-sm">
               The other player has left the game. Click OK to return to the
               lobby.
+            </p>
+            <div className="mt-4 flex items-center justify-end">
+              <button
+                onClick={() => router.push("/lobby")}
+                className="px-4 py-2 rounded-xl text-sm bg-white/10 hover:bg-white/15 text-white transition"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Game Over Modal */}
+      {gameState.gameStatus === "finished" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="relative z-10 max-w-sm w-[90%] bg-white/10 backdrop-blur-xl border border-white/15 rounded-2xl p-5 shadow-2xl">
+            <h3 className="text-white font-semibold text-lg mb-2">Game Over</h3>
+            <p className="text-white/80 text-sm">
+              {gameState.winner === "tie"
+                ? "It's a tie! Great game."
+                : `${
+                    gameState.winner === "player1"
+                      ? player1 || "Player 1"
+                      : player2 || "Player 2"
+                  } wins!`}
             </p>
             <div className="mt-4 flex items-center justify-end">
               <button
