@@ -362,9 +362,8 @@ export default function GamePage() {
           borderRadius: "8px",
           background:
             square.player === "player1"
-              ? "rgba(59,130,246,0.22)" // blue-500 @ ~22%
-              : "rgba(239,68,68,0.22)", // red-500 @ ~22%
-          backdropFilter: "blur(2px)",
+              ? "rgba(59,130,246,0.35)"
+              : "rgba(239,68,68,0.35)",
           border: "1px solid rgba(255,255,255,0.08)",
         }}
         aria-label={`Square owned by ${
