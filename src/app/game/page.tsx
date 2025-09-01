@@ -69,14 +69,14 @@ export default function GamePage() {
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showOpponentLeft, setShowOpponentLeft] = useState(false);
 
-  // Board is 320x320, 5x5 dots -> 4 cells of 75px each, dot size 20px
-  const BOARD_SIZE = 320;
+  // Board is 260x260, 5x5 dots -> 4 cells of 60px each, dot size 20px
+  const BOARD_SIZE = 260;
   const DOTS = 5;
   const CELLS = DOTS - 1; // 4
-  const CELL = 75; // px
-  const DOT = 15; // px
+  const CELL = 60; // px
+  const DOT = 20; // px
   const DOT_RADIUS = DOT / 2;
-  const LINE = 4; // px thickness for crisp lines
+  const LINE = 3; // px thickness for crisp lines
   const GAP = CELL - DOT; // space between adjacent dots' edges = 40
 
   const boardRef = useRef<HTMLDivElement | null>(null);
@@ -362,8 +362,9 @@ export default function GamePage() {
           borderRadius: "8px",
           background:
             square.player === "player1"
-              ? "rgba(59,130,246,0.35)"
-              : "rgba(239,68,68,0.35)",
+              ? "rgba(59,130,246,0.50)" // blue-500 @ ~35%
+              : "rgba(239,68,68,0.50)", // red-500 @ ~35%
+          backdropFilter: "blur(2px)",
           border: "1px solid rgba(255,255,255,0.08)",
         }}
         aria-label={`Square owned by ${
@@ -402,6 +403,18 @@ export default function GamePage() {
   const isMyTurn = gameState.currentPlayer === playerRole;
   const canPlay = gameState.gameStatus === "playing" && isMyTurn;
 
+  const isFinished = gameState.gameStatus === "finished";
+  const isWinner =
+    isFinished &&
+    gameState.winner !== "tie" &&
+    !!playerRole &&
+    gameState.winner === playerRole;
+  const isLoser =
+    isFinished &&
+    gameState.winner !== "tie" &&
+    !!playerRole &&
+    gameState.winner !== playerRole;
+
   function requestLeave(): void {
     setShowLeaveConfirm(true);
   }
@@ -424,7 +437,7 @@ export default function GamePage() {
       {/* Player Info */}
       <div className="flex gap-3 sm:gap-4 mb-3 w-full max-w-lg items-stretch">
         <div
-          className={`flex-1 p-3 rounded-xl border bg-white/10 backdrop-blur-sm flex items-center justify-between gap-3
+          className={`flex-1 p-3 rounded-xl border bg-white/5 backdrop-blur-sm flex items-center justify-between gap-3
             ${
               gameState.currentPlayer === "player1"
                 ? "border-blue-400/40 ring-2 ring-blue-400/40"
@@ -460,7 +473,7 @@ export default function GamePage() {
           className={`flex-1 p-3 rounded-xl border bg-white/5 backdrop-blur-sm flex items-center justify-between gap-3
             ${
               gameState.currentPlayer === "player2"
-                ? "border-blue-400/40 ring-2 ring-blue-400/40"
+                ? "border-red-400/40 ring-2 ring-red-400/40"
                 : "border-white/15"
             }
             ${
@@ -473,7 +486,7 @@ export default function GamePage() {
             <div
               className={`size-2.5 rounded-full ${
                 gameState.currentPlayer === "player2"
-                  ? "border-blue-400/40 ring-2 ring-blue-400/40"
+                  ? "bg-red-400 animate-pulse"
                   : "bg-white/30"
               }`}
             />
@@ -524,7 +537,7 @@ export default function GamePage() {
 
       {/* Game Board */}
       <div
-        className="relative rounded-2xl p-5 bg-white/5 backdrop-blur-xl border border-white/15 shadow-2xl"
+        className="relative rounded-2xl p-5 bg-white/5 backdrop-blur-lg border border-white/15 shadow-2xl"
         style={{ width: `${BOARD_SIZE + 40}px` }}
       >
         <div
@@ -533,8 +546,8 @@ export default function GamePage() {
           style={{
             width: `${BOARD_SIZE}px`,
             height: `${BOARD_SIZE}px`,
-            // keep the inner surface mostly transparent; the blur is on the wrapper
             background: "rgba(255,255,255,0)",
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
           }}
           onPointerDown={handleBoardPointer}
         >
@@ -602,7 +615,7 @@ export default function GamePage() {
 
       {/* Instructions */}
       <div className="mt-4 text-center max-w-md">
-        <p className="text-md text-white/80">
+        <p className="text-xs text-white/70">
           {canPlay
             ? "Tap between two dots to draw a line."
             : "Wait for your turn to make a move."}
@@ -612,21 +625,17 @@ export default function GamePage() {
       {/* Connection Status */}
       <div className="mt-4 w-full max-w-lg">
         <div className="flex flex-wrap items-center justify-center gap-2">
-          <span className="px-2.5 py-1 rounded-lg bg-white/10 text-[11px] text-white/85 border border-white/15">
-            Status: <span className="font-medium">{gameState.gameStatus}</span>
-          </span>
-          <span className="px-2.5 py-1 rounded-lg bg-white/10 text-[11px] text-white/85 border border-white/15">
-            Lines:{" "}
-            <span className="font-medium">{gameState.connections.length}</span>
-          </span>
-          <span className="px-2.5 py-1 rounded-lg bg-white/10 text-[11px] text-white/85 border border-white/15">
-            Squares:{" "}
-            <span className="font-medium">
-              {gameState.completedSquares.length}/16
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-xl bg-sky-500/15 text-sm text-sky-100 border border-sky-400/30">
+            <span className="opacity-90">Lines:</span>
+            <span className="font-semibold text-sky-300 tabular-nums">
+              {gameState.connections.length}
             </span>
           </span>
-          <span className="px-2.5 py-1 rounded-lg bg-white/10 text-[11px] text-white/85 border border-white/15">
-            Room: <span className="font-mono">{roomId}</span>
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-xl bg-sky-500/15 text-sm text-sky-100 border border-sky-400/30">
+            <span className="opacity-90">Squares:</span>
+            <span className="font-semibold text-sky-300 tabular-nums">
+              {gameState.completedSquares.length}/16
+            </span>
           </span>
         </div>
       </div>
@@ -692,24 +701,50 @@ export default function GamePage() {
       {gameState.gameStatus === "finished" && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-          <div className="relative z-10 max-w-sm w-[90%] bg-white/10 backdrop-blur-xl border border-white/15 rounded-2xl p-5 shadow-2xl">
-            <h3 className="text-white font-semibold text-lg mb-2">Game Over</h3>
-            <p className="text-white/80 text-sm">
-              {gameState.winner === "tie"
-                ? "It's a tie! Great game."
-                : `${
-                    gameState.winner === "player1"
+          <div className="relative z-10 max-w-sm w-[90%] bg-white/10 backdrop-blur-xl border border-white/15 rounded-2xl p-5 shadow-2xl overflow-hidden">
+            <div className="relative">
+              <h3 className="text-white font-semibold text-lg mb-2">
+                Game Over
+              </h3>
+
+              {gameState.winner === "tie" && (
+                <div className="text-center space-y-2">
+                  <div className="text-3xl">🤝</div>
+                  <p className="text-white/85 text-sm">
+                    It&apos;s a tie! Great game.
+                  </p>
+                </div>
+              )}
+
+              {isWinner && (
+                <div className="text-center space-y-2">
+                  <div className="text-4xl sm:text-5xl">🏆</div>
+                  <p className="text-white text-base font-semibold">You won!</p>
+                  <p className="text-white/80 text-sm">
+                    {playerRole === "player1"
                       ? player1 || "Player 1"
-                      : player2 || "Player 2"
-                  } wins!`}
-            </p>
-            <div className="mt-4 flex items-center justify-end">
-              <button
-                onClick={() => router.push("/lobby")}
-                className="px-4 py-2 rounded-xl text-sm bg-white/10 hover:bg-white/15 text-white transition"
-              >
-                OK
-              </button>
+                      : player2 || "Player 2"}
+                  </p>
+                </div>
+              )}
+
+              {isLoser && (
+                <div className="text-center space-y-2">
+                  <p className="text-white/90 text-base font-semibold">
+                    {playerRole === "player1" ? player2 : player1}{" "}
+                    <span className="text-sm text-white/80">won!</span>
+                  </p>
+                </div>
+              )}
+
+              <div className="mt-4 flex items-center justify-end">
+                <button
+                  onClick={() => router.push("/lobby")}
+                  className="px-4 py-2 rounded-xl text-sm bg-white/10 hover:bg-white/15 text-white transition"
+                >
+                  OK
+                </button>
+              </div>
             </div>
           </div>
         </div>
