@@ -3,7 +3,7 @@ name: Build Capacitor Android APK
 on:
   push:
     branches:
-      - main   # run only on main branch (change if needed)
+      - master
 
 jobs:
   build:
