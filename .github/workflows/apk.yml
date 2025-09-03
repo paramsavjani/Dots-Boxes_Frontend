@@ -30,7 +30,10 @@ jobs:
 
       # 5. Capacitor sync
       - name: Capacitor Sync
-        run: npx cap sync android
+        run: |
+          npx cap add android
+          npx @capacitor/assets generate
+          npx cap sync android
 
       # 6. Setup JDK for Gradle
       - name: Setup JDK
