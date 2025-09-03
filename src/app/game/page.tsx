@@ -100,6 +100,11 @@ export default function GamePage() {
       setLoading(false);
     });
 
+    socketInstance.on("error", (error: any) => {
+      alert(`Socket error: ${error}`);
+      console.error("Socket error:", error);
+    });
+
     socketInstance.on("gameStateUpdate", (newGameState: GameState) => {
       setPlayer1(newGameState.players.player1?.name || "Player 1");
       setPlayer2(newGameState.players.player2?.name || "Player 2");

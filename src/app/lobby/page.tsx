@@ -77,7 +77,6 @@ export default function Lobby() {
     const socket = getSocket(sessionId);
     socket.emit("sendFriendRequest", toSessionId);
 
-    // Store as "sent" request
     setRequests((prev) => [...prev, { from: "me", to: toSessionId }]);
   };
 
