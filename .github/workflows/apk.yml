@@ -1,0 +1,61 @@
+name: Build Capacitor Android APK
+
+on:
+  push:
+    branches:
+      - main   # run only on main branch (change if needed)
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 3. Install dependencies
+      - name: Install dependencies
+        run: npm install
+
+      # 4. Build web assets
+      - name: Build Web
+        run: npm run build
+
+      # 5. Capacitor sync
+      - name: Capacitor Sync
+        run: npx cap sync android
+
+      # 6. Setup JDK for Gradle
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: 17
+
+      # 7. Build debug APK
+      - name: Build Android APK
+        run: |
+          cd android
+          ./gradlew assembleDebug
+
+      # 8. Copy APK to root (so we can commit it)
+      - name: Move APK
+        run: |
+          mkdir -p apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk apk/
+
+      # 9. Commit & push APK to repo
+      - name: Commit APK
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f apk/app-debug.apk
+          git commit -m "chore: add latest APK [skip ci]" || echo "No changes to commit"
+          git push
