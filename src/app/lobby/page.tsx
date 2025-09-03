@@ -57,6 +57,22 @@ export default function Lobby() {
     };
   }, [router]);
 
+  useEffect(() => {
+    const sid = sessionStorage.getItem("sessionId");
+    const savedUsername = localStorage.getItem("username") ?? "";
+
+    if (!sid) {
+      router.push("/");
+      return;
+    }
+
+    setSessionId(sid);
+    setUsername(savedUsername);
+
+    const socket = getSocket(sid);
+    socket.emit("join", savedUsername);
+  }, [router]);
+
   const sendRequest = (toSessionId: string) => {
     const socket = getSocket(sessionId);
     socket.emit("sendFriendRequest", toSessionId);
