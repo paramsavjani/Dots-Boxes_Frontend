@@ -8,7 +8,6 @@ import { useEffect, useRef, useState } from "react";
 import { getSocket } from "@/lib/socket";
 import { useRouter } from "next/navigation";
 
-// Types
 interface Position {
   row: number;
   col: number;
@@ -138,7 +137,7 @@ export default function GamePage() {
     };
   }, [router]);
 
-  // Helpers
+  
   const areAdjacent = (pos1: Position, pos2: Position): boolean => {
     const rowDiff = Math.abs(pos1.row - pos2.row);
     const colDiff = Math.abs(pos1.col - pos2.col);
@@ -192,7 +191,7 @@ export default function GamePage() {
     });
   };
 
-  // Dot/tap click flow remains (tap two adjacent dots)
+  
   const handleDotClick = (position: Position) => {
     if (!gameState || !playerRole || !socket) return;
     if (gameState.gameStatus !== "playing") return;
@@ -220,7 +219,7 @@ export default function GamePage() {
     if (gameState.gameStatus !== "playing") return;
     if (gameState.currentPlayer !== playerRole) return;
 
-    // Ignore if directly interacting with a dot button (so existing behavior stays)
+    
     const t = e.target as HTMLElement;
     if (t && (t.tagName === "BUTTON" || t.closest("button"))) return;
 
@@ -230,7 +229,7 @@ export default function GamePage() {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    // Hit slop around lines in px
+    
     const HIT = 12;
 
     type EdgeHit = {
@@ -241,7 +240,7 @@ export default function GamePage() {
 
     const candidates: EdgeHit[] = [];
 
-    // Horizontal edges
+    
     for (let row = 0; row < DOTS; row++) {
       for (let col = 0; col < CELLS; col++) {
         const xStart = col * CELL + DOT;
@@ -255,7 +254,7 @@ export default function GamePage() {
           y <= yLine + HIT;
 
         if (withinRect) {
-          // distance squared to center for tie-breaking
+          
           const cx = (xStart + xEnd) / 2;
           const cy = yLine;
           const dx = x - cx;
@@ -269,7 +268,7 @@ export default function GamePage() {
       }
     }
 
-    // Vertical edges
+    
     for (let row = 0; row < CELLS; row++) {
       for (let col = 0; col < DOTS; col++) {
         const xLine = col * CELL + DOT_RADIUS;
@@ -298,7 +297,7 @@ export default function GamePage() {
 
     if (candidates.length === 0) return;
 
-    // Pick nearest edge center
+    
     candidates.sort((a, b) => a.dist2 - b.dist2);
     const { from, to } = candidates[0];
 
@@ -368,8 +367,8 @@ export default function GamePage() {
           borderRadius: "8px",
           background:
             square.player === "player1"
-              ? "rgba(59,130,246,0.50)" // blue-500 @ ~35%
-              : "rgba(239,68,68,0.50)", // red-500 @ ~35%
+              ? "rgba(59,130,246,0.50)" 
+              : "rgba(239,68,68,0.50)", 
           backdropFilter: "blur(2px)",
           border: "1px solid rgba(255,255,255,0.08)",
         }}

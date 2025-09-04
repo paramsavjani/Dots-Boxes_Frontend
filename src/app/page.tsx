@@ -11,7 +11,6 @@ export default function Home() {
   const [username, setUsername] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Username check state
   const [isChecking, setIsChecking] = useState(false);
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
 
