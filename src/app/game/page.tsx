@@ -313,7 +313,6 @@ export default function GamePage() {
 
     if (candidates.length === 0) return;
 
-    
     candidates.sort((a, b) => a.dist2 - b.dist2);
     const { from, to } = candidates[0];
 
@@ -433,64 +432,28 @@ export default function GamePage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen text-white p-4">
         <header className="mb-6 text-center">
-          <div className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/15 shadow-sm mb-4">
-            <h1 className="text-2xl font-bold tracking-tight text-white">
+          <div className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-xl border border-white/15 shadow-sm mb-4">
+            <h1 className="text-xl font-bold tracking-tight text-white">
               Choose Grid Size
             </h1>
           </div>
-          <p className="text-white/70 text-sm">
-            {gameState.gridSelectedBy
-              ? `${
-                  gameState.gridSelectedBy === "player1" ? player1 : player2
-                } is choosing the grid size...`
-              : "First player to choose sets the grid size for both players"}
+          <p className="text-white/90 text-sm">
+            First player to choose sets the grid size for both players
           </p>
         </header>
 
-        {/* Player Info */}
-        <div className="flex gap-4 mb-6 w-full max-w-md">
-          <div
-            className={`flex-1 p-3 rounded-xl border bg-white/5 backdrop-blur-sm ${
-              playerRole === "player1"
-                ? "outline outline-1 outline-yellow-400/50"
-                : ""
-            }`}
-          >
-            <p className="text-xs text-white/80 mb-1">{player1}</p>
-            <p className="text-[10px] text-white/60">
-              {playerRole === "player1" ? "You" : "Opponent"}
-            </p>
-          </div>
-          <div
-            className={`flex-1 p-3 rounded-xl border bg-white/5 backdrop-blur-sm ${
-              playerRole === "player2"
-                ? "outline outline-1 outline-yellow-400/50"
-                : ""
-            }`}
-          >
-            <p className="text-xs text-white/80 mb-1">{player2}</p>
-            <p className="text-[10px] text-white/60">
-              {playerRole === "player2" ? "You" : "Opponent"}
-            </p>
-          </div>
-        </div>
-
         {/* Grid Size Options */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-md mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-1 gap-2 w-full max-w-md mb-6">
           {gridSizes.map(({ size, label, description }) => (
             <button
               key={size}
               onClick={() => selectGridSize(size)}
               disabled={!!gameState.gridSelectedBy}
-              className={`p-4 rounded-xl border transition-all ${
-                gameState.gridSelectedBy
-                  ? "bg-white/5 border-white/15 opacity-50 cursor-not-allowed"
-                  : "bg-white/10 border-white/20 hover:bg-white/15 hover:border-white/30 active:scale-95"
-              }`}
+              className={`p-4 rounded-xl border transition-all bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/30 backdrop-blur-3xl`}
             >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-blue-400/25 to-purple-500/25 rounded-lg flex items-center justify-center">
-                  <Grid3X3 className="w-5 h-5 text-blue-300" />
+                  <Grid3X3 className="w-5 h-5 text-blue-100" />
                 </div>
                 <div className="text-left">
                   <p className="text-white font-semibold">{label}</p>
@@ -516,7 +479,10 @@ export default function GamePage() {
         <div className="fixed bottom-6 left-6 right-6">
           <div className="max-w-lg mx-auto">
             <button
-              onClick={() => setShowLeaveConfirm(true)}
+              onClick={() => {
+                console.log("Leaving game...");
+                setShowLeaveConfirm(true);
+              }}
               className="w-full bg-white/10 hover:bg-white/15 text-white px-4 py-3 rounded-xl font-medium flex items-center justify-center gap-2 text-sm transition-all"
             >
               <LogOut className="w-4 h-4" />
@@ -547,6 +513,7 @@ export default function GamePage() {
     setShowLeaveConfirm(true);
   }
   function confirmLeave(): void {
+    console.log("Confirmed leave game");
     socket.emit("leaveGame", roomId);
     router.push("/lobby");
   }
