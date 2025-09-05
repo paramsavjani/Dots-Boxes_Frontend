@@ -2,7 +2,7 @@
 "use client";
 
 import type React from "react";
-import { User, LogOut } from "lucide-react";
+import { User, LogOut, Grid3X3 } from "lucide-react";
 
 import { useEffect, useRef, useState } from "react";
 import { getSocket } from "@/lib/socket";
@@ -35,7 +35,7 @@ interface GameState {
     player1: number;
     player2: number;
   };
-  gameStatus: "waiting" | "playing" | "finished";
+  gameStatus: "waiting" | "gridSelection" | "playing" | "finished";
   players: {
     player1?: {
       id: string;
@@ -48,6 +48,8 @@ interface GameState {
       connected: boolean;
     };
   };
+  gridSize?: number;
+  gridSelectedBy?: "player1" | "player2";
   createdAt: number;
   lastMove: number;
   winner?: "player1" | "player2" | "tie";
@@ -68,10 +70,9 @@ export default function GamePage() {
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showOpponentLeft, setShowOpponentLeft] = useState(false);
 
-  const DOTS = 6;
+  const DOTS = gameState?.gridSize || 6;
   const DOT = 13;
   const CELL = 55;
-
 
   const CELLS = DOTS - 1;
   const DOT_RADIUS = DOT / 2;
@@ -108,6 +109,7 @@ export default function GamePage() {
       setPlayer1(newGameState.players.player1?.name || "Player 1");
       setPlayer2(newGameState.players.player2?.name || "Player 2");
       setGameState(newGameState);
+      console.log("Game state updated:", newGameState);
     });
 
     socketInstance.on("playerRoleAssigned", (role: "player1" | "player2") => {
@@ -117,6 +119,10 @@ export default function GamePage() {
     socketInstance.on("connectionMade", (gs: GameState) => {
       setGameState(gs);
       setSelectedDot(null);
+    });
+
+    socketInstance.on("gridSizeSelected", (gs: GameState) => {
+      setGameState(gs);
     });
 
     socketInstance.on("userLeft", () => {
@@ -132,12 +138,28 @@ export default function GamePage() {
       socketInstance.off("gameStateUpdate");
       socketInstance.off("playerRoleAssigned");
       socketInstance.off("connectionMade");
+      socketInstance.off("gridSizeSelected");
       socketInstance.off("gameFinished");
       socketInstance.off("userLeft");
     };
   }, [router]);
 
-  
+  useEffect(() => {
+    socket?.emit("checkActiveRoom");
+  }, [socket]);
+
+  const selectGridSize = (size: number) => {
+    if (!gameState || !playerRole || !socket) return;
+    if (gameState.gameStatus !== "gridSelection") return;
+    if (gameState.gridSelectedBy) return; // Already selected
+
+    socket.emit("selectGridSize", {
+      roomId: gameState.roomId,
+      gridSize: size,
+      player: playerRole,
+    });
+  };
+
   const areAdjacent = (pos1: Position, pos2: Position): boolean => {
     const rowDiff = Math.abs(pos1.row - pos2.row);
     const colDiff = Math.abs(pos1.col - pos2.col);
@@ -191,7 +213,6 @@ export default function GamePage() {
     });
   };
 
-  
   const handleDotClick = (position: Position) => {
     if (!gameState || !playerRole || !socket) return;
     if (gameState.gameStatus !== "playing") return;
@@ -219,7 +240,6 @@ export default function GamePage() {
     if (gameState.gameStatus !== "playing") return;
     if (gameState.currentPlayer !== playerRole) return;
 
-    
     const t = e.target as HTMLElement;
     if (t && (t.tagName === "BUTTON" || t.closest("button"))) return;
 
@@ -229,7 +249,6 @@ export default function GamePage() {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    
     const HIT = 12;
 
     type EdgeHit = {
@@ -240,7 +259,6 @@ export default function GamePage() {
 
     const candidates: EdgeHit[] = [];
 
-    
     for (let row = 0; row < DOTS; row++) {
       for (let col = 0; col < CELLS; col++) {
         const xStart = col * CELL + DOT;
@@ -254,7 +272,6 @@ export default function GamePage() {
           y <= yLine + HIT;
 
         if (withinRect) {
-          
           const cx = (xStart + xEnd) / 2;
           const cy = yLine;
           const dx = x - cx;
@@ -268,7 +285,6 @@ export default function GamePage() {
       }
     }
 
-    
     for (let row = 0; row < CELLS; row++) {
       for (let col = 0; col < DOTS; col++) {
         const xLine = col * CELL + DOT_RADIUS;
@@ -367,8 +383,8 @@ export default function GamePage() {
           borderRadius: "8px",
           background:
             square.player === "player1"
-              ? "rgba(59,130,246,0.50)" 
-              : "rgba(239,68,68,0.50)", 
+              ? "rgba(59,130,246,0.50)"
+              : "rgba(239,68,68,0.50)",
           backdropFilter: "blur(2px)",
           border: "1px solid rgba(255,255,255,0.08)",
         }}
@@ -405,6 +421,113 @@ export default function GamePage() {
     );
   }
 
+  if (gameState.gameStatus === "gridSelection") {
+    const gridSizes = [
+      { size: 4, label: "4×4", description: "Quick game" },
+      { size: 5, label: "5×5", description: "Classic" },
+      { size: 6, label: "6×6", description: "Standard" },
+      { size: 7, label: "7×7", description: "Extended" },
+      { size: 8, label: "8×8", description: "Challenge" },
+    ];
+
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen text-white p-4">
+        <header className="mb-6 text-center">
+          <div className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/15 shadow-sm mb-4">
+            <h1 className="text-2xl font-bold tracking-tight text-white">
+              Choose Grid Size
+            </h1>
+          </div>
+          <p className="text-white/70 text-sm">
+            {gameState.gridSelectedBy
+              ? `${
+                  gameState.gridSelectedBy === "player1" ? player1 : player2
+                } is choosing the grid size...`
+              : "First player to choose sets the grid size for both players"}
+          </p>
+        </header>
+
+        {/* Player Info */}
+        <div className="flex gap-4 mb-6 w-full max-w-md">
+          <div
+            className={`flex-1 p-3 rounded-xl border bg-white/5 backdrop-blur-sm ${
+              playerRole === "player1"
+                ? "outline outline-1 outline-yellow-400/50"
+                : ""
+            }`}
+          >
+            <p className="text-xs text-white/80 mb-1">{player1}</p>
+            <p className="text-[10px] text-white/60">
+              {playerRole === "player1" ? "You" : "Opponent"}
+            </p>
+          </div>
+          <div
+            className={`flex-1 p-3 rounded-xl border bg-white/5 backdrop-blur-sm ${
+              playerRole === "player2"
+                ? "outline outline-1 outline-yellow-400/50"
+                : ""
+            }`}
+          >
+            <p className="text-xs text-white/80 mb-1">{player2}</p>
+            <p className="text-[10px] text-white/60">
+              {playerRole === "player2" ? "You" : "Opponent"}
+            </p>
+          </div>
+        </div>
+
+        {/* Grid Size Options */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-md mb-6">
+          {gridSizes.map(({ size, label, description }) => (
+            <button
+              key={size}
+              onClick={() => selectGridSize(size)}
+              disabled={!!gameState.gridSelectedBy}
+              className={`p-4 rounded-xl border transition-all ${
+                gameState.gridSelectedBy
+                  ? "bg-white/5 border-white/15 opacity-50 cursor-not-allowed"
+                  : "bg-white/10 border-white/20 hover:bg-white/15 hover:border-white/30 active:scale-95"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-400/25 to-purple-500/25 rounded-lg flex items-center justify-center">
+                  <Grid3X3 className="w-5 h-5 text-blue-300" />
+                </div>
+                <div className="text-left">
+                  <p className="text-white font-semibold">{label}</p>
+                  <p className="text-white/60 text-xs">{description}</p>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {gameState.gridSelectedBy && (
+          <div className="text-center">
+            <div className="inline-flex items-center gap-2 px-3 py-2 bg-amber-500/20 rounded-xl border border-amber-400/30">
+              <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
+              <span className="text-amber-300 text-sm font-medium">
+                Waiting for grid selection...
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Leave Button */}
+        <div className="fixed bottom-6 left-6 right-6">
+          <div className="max-w-lg mx-auto">
+            <button
+              onClick={() => setShowLeaveConfirm(true)}
+              className="w-full bg-white/10 hover:bg-white/15 text-white px-4 py-3 rounded-xl font-medium flex items-center justify-center gap-2 text-sm transition-all"
+            >
+              <LogOut className="w-4 h-4" />
+              Leave Game
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const isMyTurn = gameState.currentPlayer === playerRole;
   const canPlay = gameState.gameStatus === "playing" && isMyTurn;
 
@@ -434,6 +557,9 @@ export default function GamePage() {
         <div className="px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 shadow-sm">
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white text-balance">
             Dots <span className="text-white/70">•</span> Boxes
+            <span className="text-white/50 text-sm ml-2">
+              ({DOTS}×{DOTS})
+            </span>
           </h1>
         </div>
       </header>
