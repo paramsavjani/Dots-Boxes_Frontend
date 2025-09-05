@@ -38,8 +38,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: "temurin"
-          java-version:
-            17
+          java-version: 21
             # 6.1 Give permission to gradlew
       - name: Make gradlew executable
         run: chmod +x android/gradlew
